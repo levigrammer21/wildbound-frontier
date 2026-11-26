@@ -112,7 +112,7 @@ function changeAuth(user) {
   state.room = null;
   if (oldId && oldId !== user?.uid) state.roomId = '';
   updateHeader();
-  render();
+  updateView();
   if (!user) return;
   if (!state.roomId) {
     const remembered = readStore('wildbound-company-' + user.uid, '');
