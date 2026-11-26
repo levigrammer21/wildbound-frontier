@@ -1,4 +1,4 @@
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 export const NAMESPACE = 'cairnCrownV1';
 export const SKILLS = {
   combat: ['Combat','⚔'], woodcutting: ['Woodcutting','🪓'], mining: ['Mining','⛏'],

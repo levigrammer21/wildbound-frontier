@@ -40,14 +40,6 @@ export async function verifiedAccount(){
   return auth.currentUser;
 }
 export const reset=email=>A.sendPasswordResetEmail(auth,email.trim().toLowerCase());
-export function access(email){return F.getDocFromServer(doc('invites',email)).then(x=>x.data()?.active===true);}
-export function invite(admin,email){
-  const address=email.trim().toLowerCase();
-  if(!/^[^ @/]+@[^ @/]+\.[^ @/]+$/.test(address)||address.length>150)throw Error('Enter a valid email address.');
-  if(address===admin.email)throw Error('Your own email already has access.');
-  return F.setDoc(doc('invites',address),{active:true,admin:false});
-}
-export async function myInvite(email){return (await F.getDocFromServer(doc('invites',email))).data();}
 export const watch=(group,id,callback,err)=>F.onSnapshot(doc(group,id),{includeMetadataChanges:true},snap=>{
   if(!snap.metadata.hasPendingWrites&&(snap.exists()||!snap.metadata.fromCache))callback(snap.data());
 },err);

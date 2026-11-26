@@ -1,10 +1,10 @@
-# Cairn & Crown · 1.0.0
+# Cairn & Crown · 1.0.1
 
-Cairn & Crown is a private, mobile-first fantasy RPG for one ranger or a small group. Explore Alderwatch Valley, train ten skills, earn and customize equipment, and make a living through trade, contracts, or owning a permanent establishment. All ten skills can reach level 99 and keep recording lifetime experience.
+Cairn & Crown is a mobile-first fantasy RPG for one ranger or a small group. Explore Alderwatch Valley, train ten skills, earn and customize equipment, and make a living through trade, contracts, or owning a permanent establishment. All ten skills can reach level 99 and keep recording lifetime experience.
 
 ## Start playing
 
-1. Enter Alderwatch using the email invited by your world host. Choose **Create account** if it is your first Firebase login, or **Sign in** if you already have an email/password account in this project. For a new or previously unverified address, tap **Send verification email**, open the link in your inbox, then tap **I verified my email**.
+1. Open Alderwatch. Choose **Create account** if it is your first Firebase login, or **Sign in** if you already have an email/password account in this project. For a new or previously unverified address, tap **Send verification email**, open the link in your inbox, then tap **I verified my email**.
 2. Choose a ranger name, skin, hair, and coat. Open **Town → Guild** to see the town’s first requests. You begin with basic tools, gold, supplies, a sword, and a furnishing for your house.
 3. Select **Brackenwood** on the map. Start a trail activity, visit the **Skills** screen, or choose **Fight** at an enemy. You can assign one activity at a time.
 4. In combat, basic attacks fire automatically in reach. The marked lanes show where danger will land. Reposition, guard, dodge, use your weapon’s special, and keep meals or tonics handy.
@@ -19,11 +19,11 @@ A forge's production price is quoted when the session begins. The quoted proprie
 
 ### 1. Upload the static site
 
-1. Extract **Cairn-and-Crown-v1.0.0.zip** in Android Files or iPhone Files. The ZIP opens to the source files directly. Use a fresh GitHub repository for Cairn & Crown so your earlier site's files stay on their own branch and path.
+1. Extract the complete game archive in Android Files or iPhone Files for a fresh install. If your game is already live, extract the 1.0.1 update ZIP and upload its files to your existing repository.
 2. Open your repository on GitHub. If the upload or settings controls are hidden, choose **Desktop site** in Chrome or **Request Desktop Website** in Safari.
 3. Use **Add file → Upload files**. Upload the extracted root files to the repository root, then **Commit changes** to **main**. Keep the files that came inside **img** together. If the phone picker cannot upload a folder, use **Add file → Create new file** to create **img/.gitkeep**, commit it, open that folder, then use **Add file → Upload files** for the image assets. If the picker hides **.nojekyll**, use **Add file → Create new file**, name it **.nojekyll**, put a single blank line in it, and commit it at the root.
-4. Go to the repository’s **Settings → Pages**. Select **Deploy from a branch**, branch **main**, folder **/ (root)**, and tap **Save**. The Pages screen will show the published address after the build completes. The GitHub Free workflow uses a public source repository. Access to game data is controlled by Firebase invitations.
-5. Open the site over HTTPS. You should see **Cairn & Crown** and a **v1.0.0** marker. The game runs directly from root-level files and uses the Firebase Web SDK from Google’s CDN.
+4. Go to the repository’s **Settings → Pages**. Select **Deploy from a branch**, branch **main**, folder **/ (root)**, and tap **Save**. The Pages screen will show the published address after the build completes. The GitHub Free workflow uses a public source repository. Verified email/password accounts can enter the shared world.
+5. Open the site over HTTPS. You should see **Cairn & Crown** and a **v1.0.1** marker. The game runs directly from root-level files and uses the Firebase Web SDK from Google’s CDN.
 
 [GitHub Pages publishing instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
@@ -40,8 +40,8 @@ A forge's production price is quoted when the session begins. The quoted proprie
 
 1. Open [Firestore Database](https://console.firebase.google.com/project/everfall-d0cf7/firestore), select **(default)**, and open **Rules**. Copy the entire currently published rules file and save a backup in a note.
 2. In a second tab, open **rules-setup.html** at the end of your hosted game address. Paste the current rules into **Current published rules**. Tap **Prepare merged rules** and verify that matches for your other games are present in the output.
-3. Tap **Copy merged rules**, return to the Firebase Rules editor, paste the merged rules there, and tap **Publish**. The helper runs in the page and inserts one scoped match inside the existing database match. If your custom rules use version 1 or multiple database matches, review the project rules first. The full addition is marked **CAIRN BEGIN** through **CAIRN END** in **firestore.rules** and belongs inside the active documents match. If you already added this game, use only one Cairn block.
-4. If your project has an overlapping broad allow on **gameNamespaces** or a recursive wildcard covering every path, review that wildcard before opening the private world. Firestore combines overlapping allows.
+3. Tap **Copy merged rules**, return to the Firebase Rules editor, paste the merged rules there, and tap **Publish**. The helper runs in the page and adds or updates the marked Cairn match inside the existing database match. If your custom rules use version 1 or multiple database matches, review the project rules first. The full addition is marked **CAIRN BEGIN** through **CAIRN END** in **firestore.rules** and belongs inside the active documents match. For an existing unmarked Cairn match, replace just that match and keep the surrounding rules.
+4. If your project has an overlapping broad allow on **gameNamespaces** or a recursive wildcard covering every path, review that wildcard before opening the shared world. Firestore combines overlapping allows.
 
 The game stores data under **gameNamespaces/cairnCrownV1**. The module is designed to be added alongside the existing Everfall and Wildbound rules.
 
@@ -61,16 +61,14 @@ The same definitions are included in **firestore.indexes.json**. The pets query 
 
 [Firestore index management](https://firebase.google.com/docs/firestore/query-data/indexing)
 
-### 5. Give the first host access and invite the second player
+### 5. Enter the world
 
-1. In the Firebase Console, open **Firestore Database → Data → (default)**. Open the collection **gameNamespaces**, or use **Start collection** to create it. Select **Add document** and enter **cairnCrownV1** as the document ID if this document is absent. Add a string field **label** with value **Cairn & Crown**, then save.
-2. Select the **cairnCrownV1** document and tap **Start collection**. Enter **invites** as the collection ID. Use your login email in lowercase as the document ID. Add Boolean fields **active = true** and **admin = true**, then save.
-3. Open the Pages site and sign in or create your account using that same email. Verify the email if prompted, then create your ranger.
-4. In the site header, select **Account**, type your wife’s login email, and tap **Invite to Alderwatch**. Send her the published Pages link. She can use **Create account** with that invited email, or sign in if she already has a password account in the Firebase project. Have her verify her email if prompted. The invite appears immediately after a successful account sign-in or a tap on **Check invitation**.
-5. To disable an invitation, open that lowercase email’s document in Firestore and set **active** to **false**. New and existing ranger command access follows the invitation status.
+On the Pages site, sign in with your email and password. Verify your email if prompted, then create your ranger or continue your existing save. Share the game link with anyone you want to play with. Each player signs in with their own account.
+
+For an existing site, upload the updated files and publish the revised Cairn rules before signing in to version 1.0.1.
 
 ## Build and verification
 
 Run **node tests.mjs** inside the extracted directory for the standalone engine tests. Serve the directory with a static HTTP server to preview the art and interface. The source includes documentation of the economy in **DESIGN.md** and the executed checks in **TESTING.md**.
 
-The world targets a private group. Real-time combat results and personal progression run on clients, while shared item reservations, shop deeds, fees, and ownership use Firestore transactions. One equipped pet has passive buffs. Companion and auction lists load in pages of 24. The current release supports individual real-time encounters, asynchronous trade and gifts, and real-time updates to shared economy views. Shared boss fights and borrowing other rangers were optional and are outside this release.
+The world is designed for a small group. Real-time combat results and personal progression run on clients, while shared item reservations, shop deeds, fees, and ownership use Firestore transactions. One equipped pet has passive buffs. Companion and auction lists load in pages of 24. The current release supports individual real-time encounters, asynchronous trade and gifts, and real-time updates to shared economy views. Shared boss fights and borrowing other rangers were optional and are outside this release.

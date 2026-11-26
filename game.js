@@ -1,4 +1,4 @@
-import {ACTIVITIES,EVENT_SECONDS,LOCATIONS,VERSION,eventAt} from './content.js';
+import {ACTIVITIES,EVENT_SECONDS,LOCATIONS,VERSION,eventAt} from './content.js?v=1.0.1';
 import {clone,level} from './engine.js';
 import {COAT,HAIR,SKIN,petArt,rangerArt} from './art.js';
 import {el,h,button,bar,field,form,gold,note,panel,pill,row,stack,summary,timeText,title} from './ui.js';
@@ -9,7 +9,7 @@ import {launchBattle} from './battle-ui.js';
 
 const tabs={map:worldView,skills:skillsView,pack:packView,town:townView,house:houseView};
 const state={view:'map',region:'town',skill:'woodcutting',packTab:'items',townTab:'guild',shop:'forge',
-  user:null,invite:null,p:null,ready:false,profileSeen:false,shops:{},party:[],pets:[],market:[],mail:[],
+  user:null,p:null,profileSeen:false,profileError:null,shops:{},party:[],pets:[],market:[],mail:[],
   activePet:null,activePetId:null,event:eventAt(Date.now()),online:navigator.onLine,busy:false,
   houseSelection:null,houseMove:null,visited:null,page:{},cursor:{},pages:{},drawn:false};
 let api;
@@ -40,7 +40,7 @@ function explanation(error){
     'auth/weak-password':'Use a stronger password with at least six characters.',
     'auth/invalid-email':'Enter a valid email address.',
     'auth/network-request-failed':'Firebase is unreachable. Check your connection.',
-    'permission-denied':'Firebase denied access. Check your world invitation and the published rules.',
+    'permission-denied':'The world could not open. Check that the latest Cairn & Crown rules were published in Firebase.',
     'unavailable':'Connection interrupted. Reconnect and retry.',
     'failed-precondition':'Firebase needs an index for this view. See the setup guide.'
   };
@@ -61,54 +61,47 @@ function cloud(){
   return loading;
 }
 function clean(which){while(which.length)which.pop()();}
-async function syncAccount(user){
+function syncAccount(user){
   const session=++joinSerial;
   clean(baseSubs);clean(paneSubs);petSub?.();petSub=null;
   firstReport=false;worldSlot=-1;autoAt=0;npcWindow=-1;
-  Object.assign(state,{user,invite:null,p:null,ready:false,profileSeen:false,shops:{},party:[],pets:[],market:[],mail:[],
+  Object.assign(state,{user,p:null,profileSeen:false,profileError:null,shops:{},party:[],pets:[],market:[],mail:[],
     activePet:null,activePetId:null,visited:null,page:{},cursor:{},pages:{},drawn:false});
-  if(!user){render();if(el('modal').open)account();return;}
   render();
-  try{
-    const invite=await api.myInvite(user.email.toLowerCase());
+  if(el('modal').open)account();
+  if(!user?.emailVerified)return;
+  const showError=err=>notice(explanation(err),true);
+  baseSubs.push(api.watch('players',user.uid,p=>{
     if(session!==joinSerial)return;
-    state.invite=invite||{active:false,admin:false};
-    state.ready=true;
-    if(!invite?.active||!user.emailVerified){render();if(el('modal').open)account();return;}
-    const showError=err=>notice(explanation(err),true);
-    baseSubs.push(api.watch('players',user.uid,p=>{
-      if(session!==joinSerial)return;
-      const initial=!state.profileSeen;
-      state.profileSeen=true;state.p=p||null;
-      if(p&&lastShownPlayer!==user.uid){
-        lastShownPlayer=user.uid;
-        state.region=p.region;
-      }
-      syncPet(p?.pet??null);
-      if(initial){
-        if(el('modal').open){
-          if(p)closeModal();
-          else customize(false);
-        }
-        if(p){
-          refreshPane();
-          reconcileWorld();
-          maybeCollect(true);
-        }
-      }
-      updateRender();
-    },showError));
-    baseSubs.push(api.watch('world','calendar',world=>{
-      if(world)worldSlot=world.slot;
-      renderRail();
-    },showError));
-  }catch(error){
+    const initial=!state.profileSeen;
+    const firstSave=p&&!state.p;
+    state.profileSeen=true;state.profileError=null;state.p=p||null;
+    if(p&&lastShownPlayer!==user.uid){
+      lastShownPlayer=user.uid;
+      state.region=p.region;
+    }
+    syncPet(p?.pet??null);
+    if(initial&&el('modal').open){
+      if(p)closeModal();
+      else customize(false);
+    }
+    if(firstSave){
+      refreshPane();
+      reconcileWorld();
+      maybeCollect(true);
+    }
+    updateRender();
+  },err=>{
     if(session!==joinSerial)return;
-    state.ready=true;state.invite={active:false,admin:false};
-    notice(explanation(error),true);
+    if(state.p){showError(err);return;}
+    state.profileError=err;
     render();
     if(el('modal').open)account();
-  }
+  }));
+  baseSubs.push(api.watch('world','calendar',world=>{
+    if(world)worldSlot=world.slot;
+    renderRail();
+  },showError));
 }
 function syncPet(id){
   if(state.activePetId===id)return;
@@ -251,9 +244,9 @@ function render(){
   el('version').textContent='v'+VERSION;
   el('gate').hidden=!!state.p;el('world-layout').hidden=!state.p;el('nav').hidden=!state.p;
   el('account-open').textContent=state.user?'Account':'Sign in';
-  el('gate-note').textContent=state.user&&!state.ready?'Checking world access…':
-    state.user&&state.invite?.active===false?'This account still needs a world invitation.':
-    state.user&&state.invite?.active&&!state.user.emailVerified?'Verify your email to enter the private world.':'';
+  el('gate-note').textContent=state.profileError?explanation(state.profileError):
+    state.user&&!state.user.emailVerified?'Verify your email to enter Alderwatch.':
+    state.user&&!state.profileSeen?'Loading your saved ranger…':'';
   if(!state.p)return;
   renderRail();
   document.querySelectorAll('[data-nav]').forEach(link=>{
@@ -285,48 +278,39 @@ function account(){
         try{await (await cloud()).reset(input.value);feedback.textContent='Check your email for the reset link.';}
         catch(error){feedback.textContent=explanation(error);}
       },{style:'ghost',small:true})];
-    display('Enter Alderwatch',stack(note('Use an email invited to this private world. New players can create an account here.'),form(inputs,async(data,submitter)=>{
+    display('Enter Alderwatch',stack(note('Sign in with your email and password, or create an account to start playing.'),form(inputs,async(data,submitter)=>{
       if(state.busy)return;
       state.busy=true;feedback.textContent='Connecting…';
       try{
         await (await cloud()).login(submitter?.value||'login',data.get('email'),data.get('password'));
-        if(state.user&&el('modal').open&&state.ready)account();
       }catch(error){feedback.textContent=explanation(error);}
       finally{state.busy=false;}
     })));
-  }else if(!state.ready||state.invite?.active&&state.user.emailVerified&&!state.profileSeen)display('Connecting to Alderwatch',note('Checking your account and saved character…'));
-  else if(!state.invite?.active)display('Invitation required',stack(note('Ask the world host to invite '+state.user.email+'. Return here after they activate access.'),
-    row(button('Check invitation',()=>{syncAccount(state.user);account();},{style:'primary'}),button('Sign out',()=>api.signout()))));
+  }
   else if(!state.user.emailVerified){
     const feedback=h('p',{id:'modal-feedback',class:'feedback',role:'status'});
-    display('Verify your email',stack(note('Verify '+state.user.email+' to open your private world invitation.'),feedback,
+    display('Verify your email',stack(note('Verify '+state.user.email+' to enter Alderwatch.'),feedback,
       row(button('Send verification email',async()=>{
         try{await api.verification();feedback.textContent='Verification sent. Open the link in your email, then return here.';}
         catch(error){feedback.textContent=explanation(error);}
       },{style:'primary'}),button('I verified my email',async()=>{
         try{
           const verified=await api.verifiedAccount();
-          if(verified?.emailVerified){syncAccount(verified);account();}
+          if(verified?.emailVerified)syncAccount(verified);
           else feedback.textContent='Open the verification link before trying again.';
         }catch(error){feedback.textContent=explanation(error);}
       }),button('Sign out',()=>api.signout(),{style:'ghost'}))));
   }
-  else if(!state.p)customize(false);
-  else{
-    const controls=[note(state.user.email)];
-    if(state.invite.admin)controls.push(form([
-      field('Invite email','email','','email',{required:true}),
-      h('button',{type:'submit',class:'button primary'},'Invite to Alderwatch'),
-      h('p',{id:'modal-feedback',class:'feedback',role:'status'})
-    ],async data=>{
-      try{
-        await api.invite(state.user,String(data.get('email')));
-        el('modal-feedback').textContent='Invite activated. Share the game URL with this player.';
-      }catch(error){el('modal-feedback').textContent=explanation(error);}
-    }));
-    controls.push(button('Sign out',()=>api.signout().then(closeModal)));
-    display('World account',stack(controls));
+  else if(state.profileError){
+    const permissionDenied=state.profileError.code==='permission-denied';
+    display('Unable to load your ranger',stack(note(explanation(state.profileError)),
+      row(button('Retry',()=>syncAccount(state.user),{style:'primary'}),
+        permissionDenied?h('a',{href:'./rules-setup.html',target:'_blank',rel:'noopener',class:'button ghost'},'Firebase rules setup'):null,
+        button('Sign out',()=>api.signout(),{style:'ghost'}))));
   }
+  else if(!state.profileSeen)display('Connecting to Alderwatch',note('Loading your saved ranger…'));
+  else if(!state.p)customize(false);
+  else display('World account',stack(note(state.user.email),button('Sign out',()=>api.signout().then(closeModal))));
 }
 function customize(existing){
   const appearance=existing?clone(state.p.appearance):{skin:1,hair:0,coat:0};

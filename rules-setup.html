@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cairn &amp; Crown rules setup</title>
 <link rel="stylesheet" href="./style.css">
-<script src="./rules-setup.js" type="module"></script>
+<script src="./rules-setup.js?v=1.0.1" type="module"></script>
 </head>
 <body>
 <main class="frame stack-lg" style="padding-block:24px">
   <header><p class="eyebrow">Cairn &amp; Crown</p><h1>Firebase rules setup</h1></header>
   <section class="panel stack">
-    <p>Paste the complete currently published rules from your Firebase project. This page inserts the Cairn &amp; Crown namespace below the existing rules in the same database match.</p>
+    <p>Paste the complete currently published rules from your Firebase project. This page adds the Cairn &amp; Crown rules or updates the marked Cairn block you published before.</p>
     <label>Current published rules<textarea id="existing" rows="12" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea></label>
     <button id="merge" type="button" class="button primary">Prepare merged rules</button>
     <p id="result-status" role="status" class="feedback"></p>

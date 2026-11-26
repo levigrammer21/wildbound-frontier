@@ -1,4 +1,4 @@
-# Cairn & Crown 1.0.0 verification
+# Cairn & Crown 1.0.1 verification
 
 ## Passed engine suite
 
@@ -10,7 +10,7 @@ The generator rolled 25,000 pets. It produced 24,977 distinct trait signatures a
 
 The release uses the same Firebase SDK APIs exercised here. The emulator used an isolated project ID and the combined rules for Everfall saves, Wildbound Frontier, and Cairn & Crown. Independent authenticated contexts confirmed:
 
-- Invited, verified password accounts have access. Other login providers, unverified accounts and uninvited accounts are denied. Only the host can add invites. Player saves and mailboxes are isolated.
+- Verified email/password accounts can create characters on an empty database. Anonymous, unverified and other-provider sessions are denied. Player saves and mailboxes are isolated.
 - Two devices concurrently claiming the same idle session cannot claim the same work twice. World and NPC trading windows reconcile once. All saves remain independent.
 - A proprietor collects fees for another player's completed offline actions at the locked quote. Simultaneous customers accrue both payments. Self-production charges no fee. Shop upgrades, sales commissions, deed transfer, and payout to a former proprietor preserve the tested gold totals.
 - One buyer wins a simultaneous listing purchase. A third-party forge owner received 5 gold of a 50-gold equipment sale, the seller received 45 and the buyer spent 50. Gold and items cannot be collected twice by replaying the normal transaction.
@@ -19,11 +19,11 @@ The release uses the same Firebase SDK APIs exercised here. The emulator used an
 
 ## Passed browser gameplay
 
-Chromium was exercised at phone widths of 360, 390, and 430 pixels and inspected at a desktop width of 1440 pixels. The game was served as static files and connected to the Authentication and Firestore emulators. Testers created separate accounts, requested and used verification links, registered their characters, and rejected an uninvited account. Browser runs also covered real-time player movement through a telegraphed attack, a weapon special and saved combat result, placing a furnishing, visiting the other character's house, gifting to an offline recipient, collecting mail, restoring sign-in, signing out and back in, and settling elapsed work after a reload. The browser rules helper returned the supplied legacy rules with the Cairn match inserted. A fresh solo ranger earned the 220-gold smithy price through ordinary fights and quest rewards and bought the business without gifts or developer grants.
+Chromium was exercised at phone widths of 360, 390, and 430 pixels and inspected at a desktop width of 1440 pixels. The game was served as static files and connected to the Authentication and Firestore emulators. Three testers created separate accounts, verified their addresses, and created characters on an empty database. Browser runs also covered real-time player movement through a telegraphed attack, a weapon special and saved combat result, placing a furnishing, visiting the other character's house, gifting to an offline recipient, collecting mail, restoring sign-in, signing out and back in, and settling elapsed work after a reload. The browser rules helper returned the supplied legacy rules with the Cairn match inserted. A fresh solo ranger earned the 220-gold smithy price through ordinary fights and quest rewards and bought the business without gifts or developer grants.
 
 ## Hosted checks still required
 
-Use your deployed Pages URL to confirm the domain and verification emails, the published merged rules, and the production Firestore composite index status. Sign in with two invited emails, make a small trade at the market, and open the other player's house. These checks belong to your cloud deployment. The verification above used a separate emulator and did not publish or modify the live project.
+Use your deployed Pages URL to confirm the domain and verification emails, the published merged rules, and the production Firestore composite index status. Sign in with two verified email/password accounts, make a small trade at the market, and open the other player's house. These checks belong to your cloud deployment. The verification above used a separate emulator and did not publish or modify the live project.
 
 ## Release boundaries
 
