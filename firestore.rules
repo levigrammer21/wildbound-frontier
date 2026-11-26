@@ -1,0 +1,242 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // WILDBOUND BEGIN — insert this block inside the existing documents match.
+    match /gameNamespaces/wildboundFrontierV1 {
+      function signed() {
+        return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password';
+      }
+      function bounded(x, low, high) {
+        return x is int && x >= low && x <= high;
+      }
+      function uid(x) {
+        return x is string && x.matches('^[A-Za-z0-9_-]{1,128}$');
+      }
+      function region(x) {
+        return x in ['pinefall', 'emberglass', 'moonfen'];
+      }
+      function cost(x) {
+        return x == 'pinefall' ? 60 : (x == 'emberglass' ? 90 : 120);
+      }
+      function wallet(u) {
+        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/wallets/$(u);
+      }
+      function shop(s) {
+        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/shops/$(s);
+      }
+      function listing(u) {
+        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/listings/$(u);
+      }
+      function receipt(id) {
+        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/receipts/$(id);
+      }
+      function owner(s) {
+        return exists(shop(s)) ? get(shop(s)).data.owner : '';
+      }
+      function job(v) {
+        return v in ['mine', 'scout', 'forage'];
+      }
+      function span(v, n) {
+        return duration.value((v == 'mine' ? 60 : (v == 'scout' ? 90 : 45)) * n, 's');
+      }
+      function shapeWallet(w) {
+        return w.keys().hasOnly(['name','gold','ore','gear','xp','job','tick','last'])
+          && w.name is string && w.name.size() >= 2 && w.name.size() <= 24
+          && bounded(w.gold, 0, 1000000000) && bounded(w.ore, 0, 1000000000)
+          && bounded(w.gear, 0, 1000000000) && bounded(w.xp, 0, 1000000000)
+          && job(w.job) && w.tick is timestamp && w.last is string;
+      }
+      function balance(u, id, g, o, q) {
+        let before = get(wallet(u)).data;
+        let after = getAfter(wallet(u)).data;
+        return after == {
+          'name': before.name, 'gold': before.gold + g, 'ore': before.ore + o,
+          'gear': before.gear + q, 'xp': before.xp, 'job': before.job,
+          'tick': before.tick, 'last': id
+        };
+      }
+      function gather(a, id, n) {
+        let before = get(wallet(a)).data;
+        let after = getAfter(wallet(a)).data;
+        let eligible = before.tick + span(before.job, n);
+        return bounded(n, 1, 24) && eligible <= request.time
+          && after == {
+            'name': before.name, 'gold': before.gold + (before.job == 'scout' ? 3 * n : 0),
+            'ore': before.ore + (before.job == 'mine' ? 2 * n : (before.job == 'forage' ? n : 0)),
+            'gear': before.gear, 'xp': before.xp + (before.job == 'forage' ? 2 * n : n),
+            'job': before.job, 'tick': n == 24 ? request.time : eligible, 'last': id
+          };
+      }
+      function assign(a, id, newJob) {
+        let before = get(wallet(a)).data;
+        let after = getAfter(wallet(a)).data;
+        return job(newJob) && before.job != newJob && after == {
+          'name': before.name, 'gold': before.gold, 'ore': before.ore, 'gear': before.gear,
+          'xp': before.xp, 'job': newJob, 'tick': request.time, 'last': id
+        };
+      }
+      function claim(r, id) {
+        return !exists(shop(r.s)) && balance(r.a, id, -cost(r.s), 0, 0)
+          && getAfter(shop(r.s)).data == {
+            'owner': r.a, 'craftFee': 3, 'saleFee': 2, 'price': 0, 'last': id
+          };
+      }
+      function setTerms(r, id) {
+        let before = get(shop(r.s)).data;
+        let after = getAfter(shop(r.s)).data;
+        return before.owner == r.a && after.owner == r.a && after.last == id;
+      }
+      function transfer(r, id) {
+        let before = get(shop(r.s)).data;
+        return before.owner == r.t && before.owner != r.a && before.price > 0
+          && balance(r.a, id, -before.price, 0, 0) && balance(r.t, id, before.price, 0, 0)
+          && getAfter(shop(r.s)).data == {
+            'owner': r.a, 'craftFee': before.craftFee, 'saleFee': before.saleFee, 'price': 0, 'last': id
+          };
+      }
+      function useShop(r, id) {
+        let beneficiary = owner(r.s);
+        let craft = r.k == 'craft';
+        let fee = beneficiary == '' || beneficiary == r.a ? 0 :
+          (craft ? get(shop(r.s)).data.craftFee : get(shop(r.s)).data.saleFee);
+        return balance(r.a, id, (craft ? 0 : 12) - fee, craft ? -2 : 0, craft ? 1 : -1)
+          && (fee == 0 || balance(beneficiary, id, fee, 0, 0));
+      }
+      function listingIs(u, id, s, price, state) {
+        return getAfter(listing(u)).data == {
+          'seller': u, 'shop': s, 'price': price, 'state': state, 'last': id
+        };
+      }
+      function listGear(r, id) {
+        return bounded(r.n, 9, 2000)
+          && (!exists(listing(r.a)) || get(listing(r.a)).data.state != 'open')
+          && balance(r.a, id, 0, 0, -1) && listingIs(r.a, id, r.s, r.n, 'open');
+      }
+      function cancel(r, id) {
+        let before = get(listing(r.a)).data;
+        return before.state == 'open' && balance(r.a, id, 0, 0, 1)
+          && listingIs(r.a, id, before.shop, before.price, 'canceled');
+      }
+      function buy(r, id) {
+        let before = get(listing(r.t)).data;
+        let beneficiary = owner(r.s);
+        let fee = beneficiary == '' || beneficiary == r.t ? 0 : get(shop(r.s)).data.saleFee;
+        let buyerFee = beneficiary == r.a ? fee : 0;
+        return r.a != r.t && before.state == 'open' && before.shop == r.s && before.price == r.n
+          && balance(r.a, id, buyerFee - before.price, 0, 1)
+          && balance(r.t, id, before.price - fee, 0, 0)
+          && (fee == 0 || buyerFee > 0 || balance(beneficiary, id, fee, 0, 0))
+          && listingIs(r.t, id, before.shop, before.price, 'sold');
+      }
+      function validReceipt(r, id) {
+        return r.keys().hasOnly(['a','k','s','t','n','at']) && r.a == request.auth.uid
+          && r.at == request.time && region(r.s) && uid(r.t) && r.n is int
+          && (r.k == 'gather' ? gather(r.a, id, r.n) :
+             r.k == 'assign' ? assign(r.a, id, r.t) :
+             r.k == 'claim' ? claim(r, id) :
+             r.k == 'terms' ? setTerms(r, id) :
+             r.k == 'transfer' ? transfer(r, id) :
+             r.k in ['craft','sell'] ? useShop(r, id) :
+             r.k == 'list' ? listGear(r, id) :
+             r.k == 'cancel' ? cancel(r, id) :
+             r.k == 'buy' && buy(r, id));
+      }
+      function linked(id) {
+        return id is string && id.matches('^[A-Za-z0-9_-]{20,40}$') && !exists(receipt(id))
+          && getAfter(receipt(id)).data.at == request.time
+          && getAfter(receipt(id)).data.a == request.auth.uid;
+      }
+      function walletParticipant(r, u) {
+        let beneficiary = r.k in ['craft','sell','buy'] ? owner(r.s) : '';
+        let s = beneficiary != '' ? get(shop(r.s)).data : {};
+        return (u == r.a && r.k != 'terms')
+          || (r.k in ['buy','transfer'] && u == r.t)
+          || (u == beneficiary && u != r.a && (r.k == 'craft' ? s.craftFee > 0 :
+             (r.k == 'sell' || (r.k == 'buy' && u != r.t)) && s.saleFee > 0));
+      }
+      function shopWrite(s) {
+        let w = request.resource.data;
+        let r = getAfter(receipt(w.last)).data;
+        return linked(w.last) && r.s == s && w.keys().hasOnly(['owner','craftFee','saleFee','price','last'])
+          && uid(w.owner) && bounded(w.craftFee, 0, 15) && bounded(w.saleFee, 0, 8)
+          && bounded(w.price, 0, 2000) && r.k in ['claim','terms','transfer'];
+      }
+      function listingWrite(u) {
+        let w = request.resource.data;
+        let r = getAfter(receipt(w.last)).data;
+        return linked(w.last) && ((r.k in ['list','cancel'] && r.a == u) || (r.k == 'buy' && r.t == u));
+      }
+
+      match /wallets/{u} {
+        allow get: if signed();
+        allow create: if signed() && request.auth.uid == u && shapeWallet(request.resource.data)
+          && request.resource.data == {
+            'name': request.resource.data.name, 'gold': 75, 'ore': 8, 'gear': 0,
+            'xp': 0, 'job': 'mine', 'tick': request.time, 'last': ''
+          };
+        allow update: if signed() && shapeWallet(request.resource.data)
+          && linked(request.resource.data.last)
+          && walletParticipant(getAfter(receipt(request.resource.data.last)).data, u);
+      }
+      match /shops/{s} {
+        allow get: if signed() && region(s);
+        allow create, update: if signed() && region(s) && shopWrite(s);
+      }
+      match /listings/{u} {
+        allow get: if signed();
+        allow list: if signed() && request.query.limit <= 30 && resource.data.state == 'open';
+        allow create, update: if signed() && listingWrite(u);
+      }
+      match /receipts/{id} {
+        allow create: if signed() && id.matches('^[A-Za-z0-9_-]{20,40}$')
+          && validReceipt(request.resource.data, id);
+      }
+      match /profiles/{u} {
+        function validProfile(p) {
+          return p.keys().hasOnly(['seed','active','progress','wins','discovery','trails','journal','updated'])
+            && bounded(p.seed, 1, 2147483647) && bounded(p.active, 0, 11)
+            && bounded(p.progress, 0, 3) && bounded(p.wins, 0, 100000)
+            && bounded(p.discovery, 1, 12) && p.trails is list && p.trails.size() == 3
+            && bounded(p.trails[0], -1, 2) && bounded(p.trails[1], -1, 2) && bounded(p.trails[2], -1, 2)
+            && p.journal is list && p.journal.size() <= 36
+            && p.updated == request.time;
+        }
+        allow get: if signed() && request.auth.uid == u;
+        allow create, update: if signed() && request.auth.uid == u && validProfile(request.resource.data);
+      }
+      match /rooms/{id} {
+        function plan(p) {
+          return p.keys().hasOnly(['name','seed','tactic']) && p.name is string
+            && p.name.size() >= 2 && p.name.size() <= 24
+            && bounded(p.seed, 1, 2147483647) && p.tactic in ['strike','guard','mend'];
+        }
+        function opens(r) {
+          return r.keys().hasOnly(['host','hostPlan','guest','guestPlan','started','hostScore','guestScore','hostRally','guestRally','created'])
+            && r.host == request.auth.uid && plan(r.hostPlan) && r.guest == '' && r.guestPlan == {}
+            && r.started == null && r.hostScore == 0 && r.guestScore == 0
+            && r.hostRally == null && r.guestRally == null && r.created == request.time;
+        }
+        function joins(before, after) {
+          return before.guest == '' && before.host != request.auth.uid && after.guest == request.auth.uid
+            && plan(after.guestPlan) && after.started == request.time
+            && after.diff(before).affectedKeys().hasOnly(['guest','guestPlan','started']);
+        }
+        function reports(before, after) {
+          return before.guest != '' && request.time >= before.started + duration.value(4, 's')
+            && ((before.host == request.auth.uid && bounded(after.hostScore, before.hostScore + 1, 200)
+                 && after.diff(before).affectedKeys().hasOnly(['hostScore']))
+              || (before.guest == request.auth.uid && bounded(after.guestScore, before.guestScore + 1, 200)
+                 && after.diff(before).affectedKeys().hasOnly(['guestScore']))
+              || (before.host == request.auth.uid && before.hostRally == null && after.hostRally == request.time
+                 && after.diff(before).affectedKeys().hasOnly(['hostRally']))
+              || (before.guest == request.auth.uid && before.guestRally == null && after.guestRally == request.time
+                 && after.diff(before).affectedKeys().hasOnly(['guestRally'])));
+        }
+        allow get: if signed();
+        allow create: if signed() && id.matches('^[a-f0-9]{12}$') && opens(request.resource.data);
+        allow update: if signed() && (joins(resource.data, request.resource.data) || reports(resource.data, request.resource.data));
+      }
+    }
+    // WILDBOUND END
+  }
+}
