@@ -1,242 +1,260 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // WILDBOUND BEGIN — insert this block inside the existing documents match.
-    match /gameNamespaces/wildboundFrontierV1 {
+    // CAIRN BEGIN — paste this entire match inside the existing documents match.
+    match /gameNamespaces/cairnCrownV1 {
       function signed() {
-        return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password';
+        return request.auth != null && request.auth.token.firebase.sign_in_provider == 'password'
+          && request.auth.token.email is string;
       }
-      function bounded(x, low, high) {
-        return x is int && x >= low && x <= high;
+      function address(email) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/invites/$(email);
       }
-      function uid(x) {
-        return x is string && x.matches('^[A-Za-z0-9_-]{1,128}$');
+      function joined() {
+        return signed() && request.auth.token.email_verified == true
+          && get(address(request.auth.token.email)).data.active == true;
       }
-      function region(x) {
-        return x in ['pinefall', 'emberglass', 'moonfen'];
+      function admin() {
+        return joined() && get(address(request.auth.token.email)).data.admin == true;
       }
-      function cost(x) {
-        return x == 'pinefall' ? 60 : (x == 'emberglass' ? 90 : 120);
+      function who() { return request.auth.uid; }
+      function my(uid) { return joined() && who() == uid; }
+      function id(v) { return v is string && v.size() > 0 && v.size() <= 128; }
+      function qty(n, max) { return n is int && n >= 0 && n <= max; }
+      function site(v) { return v in ['forge','mill','workshop','kitchen','apothecary','general','furnishings','hatchery']; }
+      function cost(v) {
+        return v == 'forge' ? 220 : v == 'mill' ? 180 : v == 'workshop' ? 200 :
+          v == 'kitchen' ? 170 : v == 'apothecary' ? 210 : v == 'hatchery' ? 235 : 190;
       }
-      function wallet(u) {
-        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/wallets/$(u);
+      function clockSlot(v) {
+        return qty(v, 999999) && timestamp.value(v * 21600000) <= request.time &&
+          timestamp.value((v+2) * 21600000) > request.time;
       }
-      function shop(s) {
-        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/shops/$(s);
+      function savePath(u) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/players/$(u);
       }
-      function listing(u) {
-        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/listings/$(u);
+      function profilePath(u) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/profiles/$(u);
       }
-      function receipt(id) {
-        return /databases/$(database)/documents/gameNamespaces/wildboundFrontierV1/receipts/$(id);
+      function shopPath(s) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/shops/$(s);
       }
-      function owner(s) {
-        return exists(shop(s)) ? get(shop(s)).data.owner : '';
+      function petPath(p) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/pets/$(p);
       }
-      function job(v) {
-        return v in ['mine', 'scout', 'forage'];
+      function sigPath(sig) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/signatures/$(sig);
       }
-      function span(v, n) {
-        return duration.value((v == 'mine' ? 60 : (v == 'scout' ? 90 : 45)) * n, 's');
+      function marketPath(m) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/market/$(m);
       }
-      function shapeWallet(w) {
-        return w.keys().hasOnly(['name','gold','ore','gear','xp','job','tick','last'])
-          && w.name is string && w.name.size() >= 2 && w.name.size() <= 24
-          && bounded(w.gold, 0, 1000000000) && bounded(w.ore, 0, 1000000000)
-          && bounded(w.gear, 0, 1000000000) && bounded(w.xp, 0, 1000000000)
-          && job(w.job) && w.tick is timestamp && w.last is string;
+      function mailPath(u, m) {
+        return /databases/$(database)/documents/gameNamespaces/cairnCrownV1/mail/$(u)/entries/$(m);
       }
-      function balance(u, id, g, o, q) {
-        let before = get(wallet(u)).data;
-        let after = getAfter(wallet(u)).data;
-        return after == {
-          'name': before.name, 'gold': before.gold + g, 'ore': before.ore + o,
-          'gear': before.gear + q, 'xp': before.xp, 'job': before.job,
-          'tick': before.tick, 'last': id
-        };
+      function moved() {
+        return getAfter(savePath(who())).data.rev == get(savePath(who())).data.rev + 1
+          && getAfter(savePath(who())).data.stamp == request.time;
       }
-      function gather(a, id, n) {
-        let before = get(wallet(a)).data;
-        let after = getAfter(wallet(a)).data;
-        let eligible = before.tick + span(before.job, n);
-        return bounded(n, 1, 24) && eligible <= request.time
-          && after == {
-            'name': before.name, 'gold': before.gold + (before.job == 'scout' ? 3 * n : 0),
-            'ore': before.ore + (before.job == 'mine' ? 2 * n : (before.job == 'forage' ? n : 0)),
-            'gear': before.gear, 'xp': before.xp + (before.job == 'forage' ? 2 * n : n),
-            'job': before.job, 'tick': n == 24 ? request.time : eligible, 'last': id
-          };
+      function named(n, min, max) { return n is string && n.size() >= min && n.size() <= max; }
+      function avatar(a) {
+        return a.keys().hasOnly(['skin','hair','coat']) &&
+          qty(a.skin,4) && qty(a.hair,4) && qty(a.coat,5);
       }
-      function assign(a, id, newJob) {
-        let before = get(wallet(a)).data;
-        let after = getAfter(wallet(a)).data;
-        return job(newJob) && before.job != newJob && after == {
-          'name': before.name, 'gold': before.gold, 'ore': before.ore, 'gear': before.gear,
-          'xp': before.xp, 'job': newJob, 'tick': request.time, 'last': id
-        };
+      function petVisual(t) {
+        return t.keys().hasOnly(['body','size','color','eye','ears','tail','mark','accessory','eyeShape','accent'])
+          && qty(t.body,3) && qty(t.size,3) && qty(t.color,15) && qty(t.eye,7)
+          && qty(t.ears,3) && qty(t.tail,3) && qty(t.mark,7) && qty(t.accessory,7)
+          && qty(t.eyeShape,2) && qty(t.accent,5);
       }
-      function claim(r, id) {
-        return !exists(shop(r.s)) && balance(r.a, id, -cost(r.s), 0, 0)
-          && getAfter(shop(r.s)).data == {
-            'owner': r.a, 'craftFee': 3, 'saleFee': 2, 'price': 0, 'last': id
-          };
+      function signatureOf(t) {
+        return string(t.body)+'-'+string(t.size)+'-'+string(t.color)+'-'+string(t.eye)+'-'+
+          string(t.ears)+'-'+string(t.tail)+'-'+string(t.mark)+'-'+string(t.accessory)+'-'+
+          string(t.eyeShape)+'-'+string(t.accent);
       }
-      function setTerms(r, id) {
-        let before = get(shop(r.s)).data;
-        let after = getAfter(shop(r.s)).data;
-        return before.owner == r.a && after.owner == r.a && after.last == id;
+      function saveShape(d) {
+        return d.keys().hasOnly(['name','appearance','xp','bag','bank','gear','vault','eggs','eggSources','gold','karma',
+          'equipped','pet','house','quests','kills','activity','ticket','discovery','eventDone','rev','region','report','last','stats','stamp'])
+          && named(d.name,2,22) && avatar(d.appearance)
+          && qty(d.gold,100000000) && qty(d.karma,100000000)
+          && d.bag is map && d.bag.size() <= 64 && d.bank is map && d.bank.size() <= 64
+          && d.gear is map && d.gear.size() <= 48 && d.vault is map && d.vault.size() <= 96
+          && d.eggs is map && d.eggs.size() <= 4 && d.house is map && d.house.size() <= 25
+          && d.xp is map && d.xp.size() == 10 && d.stamp == request.time;
       }
-      function transfer(r, id) {
-        let before = get(shop(r.s)).data;
-        return before.owner == r.t && before.owner != r.a && before.price > 0
-          && balance(r.a, id, -before.price, 0, 0) && balance(r.t, id, before.price, 0, 0)
-          && getAfter(shop(r.s)).data == {
-            'owner': r.a, 'craftFee': before.craftFee, 'saleFee': before.saleFee, 'price': 0, 'last': id
-          };
+      function property(s) {
+        return s.keys().hasOnly(['owner','ownerName','fee','commission','price','level','balance','total','npcSlot',
+          'production','sales','npc','history','actor','rev','stamp'])
+          && id(s.owner) && named(s.ownerName,2,22) && qty(s.fee,8) && qty(s.commission,15)
+          && qty(s.price,100000) && s.level in [1,2,3] && qty(s.balance,100000000)
+          && qty(s.total,100000000) && s.npcSlot is int && s.history is list && s.history.size() <= 16
+          && s.actor == who() && s.stamp == request.time;
       }
-      function useShop(r, id) {
-        let beneficiary = owner(r.s);
-        let craft = r.k == 'craft';
-        let fee = beneficiary == '' || beneficiary == r.a ? 0 :
-          (craft ? get(shop(r.s)).data.craftFee : get(shop(r.s)).data.saleFee);
-        return balance(r.a, id, (craft ? 0 : 12) - fee, craft ? -2 : 0, craft ? 1 : -1)
-          && (fee == 0 || balance(beneficiary, id, fee, 0, 0));
+      function closedOffer(before, after, k) {
+        return before.state == 'open' && after.actor == who() && after.closed == request.time &&
+          after.diff(before).affectedKeys().hasOnly(['state','buyer','actor','nonce','closed'])
+          && after.nonce == getAfter(savePath(who())).data.last &&
+          ((before.seller == who() && after.state == 'canceled' && after.buyer == '') ||
+            (before.seller != who() && after.state == 'sold' && after.buyer == who() &&
+              getAfter(savePath(who())).data.gold == get(savePath(who())).data.gold - before.price &&
+              getAfter(mailPath(before.seller, after.nonce+'market')).data.offer == k));
       }
-      function listingIs(u, id, s, price, state) {
-        return getAfter(listing(u)).data == {
-          'seller': u, 'shop': s, 'price': price, 'state': state, 'last': id
-        };
+      function creditedSale(p) {
+        let offer=getAfter(marketPath(p.offer)).data;
+        return offer.state == 'sold' && offer.closed == request.time && offer.buyer == who()
+          && offer.seller == p.to && offer.shop == p.shop
+          && p.gold <= offer.price && p.gold >= offer.price - offer.price*0.15;
       }
-      function listGear(r, id) {
-        return bounded(r.n, 9, 2000)
-          && (!exists(listing(r.a)) || get(listing(r.a)).data.state != 'open')
-          && balance(r.a, id, 0, 0, -1) && listingIs(r.a, id, r.s, r.n, 'open');
+      function escrow(before, after) {
+        return before.owner == who() && before.state == 'owned'
+          && (after.state == 'listed' && after.owner == who() && after.recipient == ''
+            && getAfter(marketPath(after.link)).data.asset.id == before.id
+          || after.state == 'gifted' && after.owner == who() && id(after.recipient)
+            && getAfter(mailPath(after.recipient,after.link)).data.asset.id == before.id
+          || after.state == 'released' && after.owner == '' && after.recipient == ''
+            && getAfter(savePath(who())).data.karma > get(savePath(who())).data.karma);
       }
-      function cancel(r, id) {
-        let before = get(listing(r.a)).data;
-        return before.state == 'open' && balance(r.a, id, 0, 0, 1)
-          && listingIs(r.a, id, before.shop, before.price, 'canceled');
-      }
-      function buy(r, id) {
-        let before = get(listing(r.t)).data;
-        let beneficiary = owner(r.s);
-        let fee = beneficiary == '' || beneficiary == r.t ? 0 : get(shop(r.s)).data.saleFee;
-        let buyerFee = beneficiary == r.a ? fee : 0;
-        return r.a != r.t && before.state == 'open' && before.shop == r.s && before.price == r.n
-          && balance(r.a, id, buyerFee - before.price, 0, 1)
-          && balance(r.t, id, before.price - fee, 0, 0)
-          && (fee == 0 || buyerFee > 0 || balance(beneficiary, id, fee, 0, 0))
-          && listingIs(r.t, id, before.shop, before.price, 'sold');
-      }
-      function validReceipt(r, id) {
-        return r.keys().hasOnly(['a','k','s','t','n','at']) && r.a == request.auth.uid
-          && r.at == request.time && region(r.s) && uid(r.t) && r.n is int
-          && (r.k == 'gather' ? gather(r.a, id, r.n) :
-             r.k == 'assign' ? assign(r.a, id, r.t) :
-             r.k == 'claim' ? claim(r, id) :
-             r.k == 'terms' ? setTerms(r, id) :
-             r.k == 'transfer' ? transfer(r, id) :
-             r.k in ['craft','sell'] ? useShop(r, id) :
-             r.k == 'list' ? listGear(r, id) :
-             r.k == 'cancel' ? cancel(r, id) :
-             r.k == 'buy' && buy(r, id));
-      }
-      function linked(id) {
-        return id is string && id.matches('^[A-Za-z0-9_-]{20,40}$') && !exists(receipt(id))
-          && getAfter(receipt(id)).data.at == request.time
-          && getAfter(receipt(id)).data.a == request.auth.uid;
-      }
-      function walletParticipant(r, u) {
-        let beneficiary = r.k in ['craft','sell','buy'] ? owner(r.s) : '';
-        let s = beneficiary != '' ? get(shop(r.s)).data : {};
-        return (u == r.a && r.k != 'terms')
-          || (r.k in ['buy','transfer'] && u == r.t)
-          || (u == beneficiary && u != r.a && (r.k == 'craft' ? s.craftFee > 0 :
-             (r.k == 'sell' || (r.k == 'buy' && u != r.t)) && s.saleFee > 0));
-      }
-      function shopWrite(s) {
-        let w = request.resource.data;
-        let r = getAfter(receipt(w.last)).data;
-        return linked(w.last) && r.s == s && w.keys().hasOnly(['owner','craftFee','saleFee','price','last'])
-          && uid(w.owner) && bounded(w.craftFee, 0, 15) && bounded(w.saleFee, 0, 8)
-          && bounded(w.price, 0, 2000) && r.k in ['claim','terms','transfer'];
-      }
-      function listingWrite(u) {
-        let w = request.resource.data;
-        let r = getAfter(receipt(w.last)).data;
-        return linked(w.last) && ((r.k in ['list','cancel'] && r.a == u) || (r.k == 'buy' && r.t == u));
+      function unlockPet(before, after) {
+        return after.state == 'owned' && after.owner == who() && after.recipient == '' &&
+          before.link == after.link &&
+          ((before.state == 'listed' && getAfter(marketPath(after.link)).data.closed == request.time
+            && (getAfter(marketPath(after.link)).data.buyer == who() ||
+                  (before.owner == who() && getAfter(marketPath(after.link)).data.state == 'canceled'))) ||
+           (before.state == 'gifted' && before.recipient == who()
+            && getAfter(mailPath(who(),after.link)).data.state == 'claimed'
+            && getAfter(mailPath(who(),after.link)).data.closed == request.time));
       }
 
-      match /wallets/{u} {
-        allow get: if signed();
-        allow create: if signed() && request.auth.uid == u && shapeWallet(request.resource.data)
-          && request.resource.data == {
-            'name': request.resource.data.name, 'gold': 75, 'ore': 8, 'gear': 0,
-            'xp': 0, 'job': 'mine', 'tick': request.time, 'last': ''
-          };
-        allow update: if signed() && shapeWallet(request.resource.data)
-          && linked(request.resource.data.last)
-          && walletParticipant(getAfter(receipt(request.resource.data.last)).data, u);
+      match /invites/{email} {
+        allow get: if signed() && (request.auth.token.email == email || admin());
+        allow create, update: if admin() && email != request.auth.token.email
+          && request.resource.data.keys().hasOnly(['active','admin'])
+          && request.resource.data.active is bool && request.resource.data.admin == false;
       }
-      match /shops/{s} {
-        allow get: if signed() && region(s);
-        allow create, update: if signed() && region(s) && shopWrite(s);
+      match /clock/{owner} {
+        allow get: if my(owner);
+        allow create, update: if my(owner) && request.resource.data.keys().hasOnly(['stamp'])
+          && request.resource.data.stamp == request.time;
       }
-      match /listings/{u} {
-        allow get: if signed();
-        allow list: if signed() && request.query.limit <= 30 && resource.data.state == 'open';
-        allow create, update: if signed() && listingWrite(u);
+      match /players/{owner} {
+        allow get: if my(owner);
+        allow create: if my(owner) && saveShape(request.resource.data) && request.resource.data.rev == 1
+          && request.resource.data.gold == 85 && request.resource.data.karma == 0;
+        allow update: if my(owner) && saveShape(request.resource.data)
+          && request.resource.data.rev == resource.data.rev + 1 && request.resource.data.name == resource.data.name
+          && named(request.resource.data.last,32,32);
       }
-      match /receipts/{id} {
-        allow create: if signed() && id.matches('^[A-Za-z0-9_-]{20,40}$')
-          && validReceipt(request.resource.data, id);
+      match /profiles/{owner} {
+        allow get: if joined();
+        allow list: if joined() && request.query.limit <= 24;
+        allow create, update: if my(owner) && request.resource.data.stamp == request.time
+          && request.resource.data.keys().hasOnly(['name','appearance','rank','xp','kills','karma','house','weapon','pet','stamp'])
+          && request.resource.data.name == getAfter(savePath(owner)).data.name
+          && request.resource.data.house == getAfter(savePath(owner)).data.house;
       }
-      match /profiles/{u} {
-        function validProfile(p) {
-          return p.keys().hasOnly(['seed','active','progress','wins','discovery','trails','journal','updated'])
-            && bounded(p.seed, 1, 2147483647) && bounded(p.active, 0, 11)
-            && bounded(p.progress, 0, 3) && bounded(p.wins, 0, 100000)
-            && bounded(p.discovery, 1, 12) && p.trails is list && p.trails.size() == 3
-            && bounded(p.trails[0], -1, 2) && bounded(p.trails[1], -1, 2) && bounded(p.trails[2], -1, 2)
-            && p.journal is list && p.journal.size() <= 36
-            && p.updated == request.time;
+      match /world/{realm} {
+        allow get: if joined() && realm == 'calendar';
+        function validCalendar() {
+          return joined() && realm == 'calendar'
+            && request.resource.data.keys().hasOnly(['slot','by','stamp'])
+            && clockSlot(request.resource.data.slot) && request.resource.data.stamp == request.time
+            && request.resource.data.by == who();
         }
-        allow get: if signed() && request.auth.uid == u;
-        allow create, update: if signed() && request.auth.uid == u && validProfile(request.resource.data);
+        allow create: if validCalendar();
+        allow update: if validCalendar() && request.resource.data.slot > resource.data.slot;
       }
-      match /rooms/{id} {
-        function plan(p) {
-          return p.keys().hasOnly(['name','seed','tactic']) && p.name is string
-            && p.name.size() >= 2 && p.name.size() <= 24
-            && bounded(p.seed, 1, 2147483647) && p.tactic in ['strike','guard','mend'];
+      match /shops/{shop} {
+        allow get: if joined() && site(shop);
+        allow list: if joined() && request.query.limit <= 8;
+        allow create: if joined() && site(shop) && moved() && property(request.resource.data)
+          && request.resource.data.owner == who() && request.resource.data.rev == 1 &&
+          request.resource.data.balance == 0 && request.resource.data.total == 0 && clockSlot(request.resource.data.npcSlot)
+          && getAfter(savePath(who())).data.gold == get(savePath(who())).data.gold - cost(shop);
+        allow update: if joined() && site(shop) && moved() && property(request.resource.data)
+          && request.resource.data.rev == resource.data.rev + 1
+          && (request.resource.data.owner == resource.data.owner &&
+            (resource.data.owner == who() ||
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                ['balance','total','production','sales','npc','npcSlot','history','actor','stamp','rev'])
+              && request.resource.data.balance >= resource.data.balance
+              && request.resource.data.total >= resource.data.total
+              && (request.resource.data.npcSlot == resource.data.npcSlot ||
+                (request.resource.data.npcSlot > resource.data.npcSlot && clockSlot(request.resource.data.npcSlot)))) ||
+            request.resource.data.owner == who() && resource.data.owner != who() && resource.data.price > 0
+              && request.resource.data.price == 0 && request.resource.data.balance == 0
+              && getAfter(savePath(who())).data.gold == get(savePath(who())).data.gold - resource.data.price
+              && getAfter(mailPath(resource.data.owner,getAfter(savePath(who())).data.last+'deed')).data.gold == resource.data.price);
+      }
+      match /signatures/{sig} {
+        allow get: if joined();
+        allow create: if joined() && request.resource.data.keys().hasOnly(['pet','owner','stamp'])
+          && request.resource.data.owner == who() && request.resource.data.stamp == request.time
+          && getAfter(petPath(request.resource.data.pet)).data.signature == sig;
+      }
+      match /pets/{pet} {
+        allow get: if joined();
+        allow list: if joined() && request.query.limit <= 24 && resource.data.owner == who();
+        allow create: if joined() && moved() && request.resource.data.id == pet && request.resource.data.original == who()
+          && request.resource.data.owner == who() && request.resource.data.actor == who() && request.resource.data.hatched == request.time
+          && request.resource.data.stamp == request.time && request.resource.data.state == 'owned' &&
+          request.resource.data.history == [] && request.resource.data.hops == 0
+          && petVisual(request.resource.data.traits) && request.resource.data.signature == signatureOf(request.resource.data.traits)
+          && request.resource.data.buffs.size() >= 1 && request.resource.data.buffs.size() <= 3
+          && getAfter(sigPath(request.resource.data.signature)).data.pet == pet;
+        allow update: if joined() && moved() && request.resource.data.actor == who()
+          && request.resource.data.stamp == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['owner','state','history','hops','link','recipient','name','actor','stamp'])
+          && request.resource.data.history.size() <= 32 && named(request.resource.data.name,1,20)
+          && ((resource.data.owner == who() && resource.data.state == 'owned'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','actor','stamp','link'])) ||
+            escrow(resource.data,request.resource.data) || unlockPet(resource.data,request.resource.data));
+        match /trail/{hop} {
+          allow get: if joined();
+          allow list: if joined() && request.query.limit <= 24;
+          allow create: if joined() && moved()
+            && request.resource.data.keys().hasOnly(['from','to','at','kind','stamp'])
+            && request.resource.data.stamp == request.time
+            && request.resource.data.from == get(petPath(pet)).data.owner
+            && request.resource.data.to == getAfter(petPath(pet)).data.owner
+            && getAfter(petPath(pet)).data.hops == get(petPath(pet)).data.hops + 1
+            && hop == string(getAfter(petPath(pet)).data.hops)
+            && request.resource.data.kind in ['release','sale','gift'];
         }
-        function opens(r) {
-          return r.keys().hasOnly(['host','hostPlan','guest','guestPlan','started','hostScore','guestScore','hostRally','guestRally','created'])
-            && r.host == request.auth.uid && plan(r.hostPlan) && r.guest == '' && r.guestPlan == {}
-            && r.started == null && r.hostScore == 0 && r.guestScore == 0
-            && r.hostRally == null && r.guestRally == null && r.created == request.time;
-        }
-        function joins(before, after) {
-          return before.guest == '' && before.host != request.auth.uid && after.guest == request.auth.uid
-            && plan(after.guestPlan) && after.started == request.time
-            && after.diff(before).affectedKeys().hasOnly(['guest','guestPlan','started']);
-        }
-        function reports(before, after) {
-          return before.guest != '' && request.time >= before.started + duration.value(4, 's')
-            && ((before.host == request.auth.uid && bounded(after.hostScore, before.hostScore + 1, 200)
-                 && after.diff(before).affectedKeys().hasOnly(['hostScore']))
-              || (before.guest == request.auth.uid && bounded(after.guestScore, before.guestScore + 1, 200)
-                 && after.diff(before).affectedKeys().hasOnly(['guestScore']))
-              || (before.host == request.auth.uid && before.hostRally == null && after.hostRally == request.time
-                 && after.diff(before).affectedKeys().hasOnly(['hostRally']))
-              || (before.guest == request.auth.uid && before.guestRally == null && after.guestRally == request.time
-                 && after.diff(before).affectedKeys().hasOnly(['guestRally'])));
-        }
-        allow get: if signed();
-        allow create: if signed() && id.matches('^[a-f0-9]{12}$') && opens(request.resource.data);
-        allow update: if signed() && (joins(resource.data, request.resource.data) || reports(resource.data, request.resource.data));
+      }
+      match /market/{offer} {
+        allow get: if joined();
+        allow list: if joined() && request.query.limit <= 24 && resource.data.state == 'open';
+        allow create: if joined() && moved() && request.resource.data.keys().hasOnly(
+          ['seller','sellerName','asset','price','shop','state','buyer','stamp','actor','nonce'])
+          && request.resource.data.seller == who() && request.resource.data.actor == who()
+          && request.resource.data.nonce == getAfter(savePath(who())).data.last && request.resource.data.nonce == offer
+          && request.resource.data.price > 0 && qty(request.resource.data.price,100000) && site(request.resource.data.shop)
+          && request.resource.data.state == 'open' && request.resource.data.buyer == '' && request.resource.data.stamp == request.time
+          && request.resource.data.asset.kind in ['pet','gear','item','egg'];
+        allow update: if joined() && moved() && closedOffer(resource.data,request.resource.data,offer);
+      }
+      match /mail/{receiver}/entries/{letter} {
+        allow get: if my(receiver);
+        allow list: if my(receiver) && request.query.limit <= 24;
+        allow create: if joined() && moved() && request.resource.data.from == who() && receiver != who()
+          && request.resource.data.to == receiver && request.resource.data.state == 'open' && request.resource.data.stamp == request.time
+          && (request.resource.data.kind == 'gift' && request.resource.data.asset.kind in ['pet','gear','item','egg']
+              && exists(profilePath(receiver)) && letter == getAfter(savePath(who())).data.last+'gift'
+           || request.resource.data.kind == 'sale' && qty(request.resource.data.gold,100000)
+              && letter == getAfter(savePath(who())).data.last+'market' && creditedSale(request.resource.data)
+           || request.resource.data.kind in ['revenue','deed'] && site(request.resource.data.shop) && qty(request.resource.data.gold,100000000)
+              && ((letter == getAfter(savePath(who())).data.last+'deed' || letter == getAfter(savePath(who())).data.last+'credit')
+                  && get(shopPath(request.resource.data.shop)).data.owner == receiver
+                  && getAfter(shopPath(request.resource.data.shop)).data.owner == who()
+                  || letter == getAfter(savePath(who())).data.last+'fee'
+                    && get(savePath(who())).data.activity.quote.owner == receiver
+                    && get(savePath(who())).data.activity.quote.shop == request.resource.data.shop
+                    && request.resource.data.gold == get(savePath(who())).data.gold - getAfter(savePath(who())).data.gold));
+        allow update: if my(receiver) && moved() && resource.data.state == 'open'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state','closed'])
+          && request.resource.data.state == 'claimed' && request.resource.data.closed == request.time;
       }
     }
-    // WILDBOUND END
+    // CAIRN END
   }
 }

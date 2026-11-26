@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cairn &amp; Crown rules setup</title>
+<link rel="stylesheet" href="./style.css">
+<script src="./rules-setup.js" type="module"></script>
+</head>
+<body>
+<main class="frame stack-lg" style="padding-block:24px">
+  <header><p class="eyebrow">Cairn &amp; Crown</p><h1>Firebase rules setup</h1></header>
+  <section class="panel stack">
+    <p>Paste the complete currently published rules from your Firebase project. This page inserts the Cairn &amp; Crown namespace below the existing rules in the same database match.</p>
+    <label>Current published rules<textarea id="existing" rows="12" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea></label>
+    <button id="merge" type="button" class="button primary">Prepare merged rules</button>
+    <p id="result-status" role="status" class="feedback"></p>
+  </section>
+  <section class="panel stack" id="output" hidden>
+    <h2>Review the merged rules</h2>
+    <p>Confirm your existing game matches are still present. Paste this output into the Firebase Rules editor, then tap <strong>Publish</strong>.</p>
+    <label>Merged rules<textarea id="combined" rows="16" readonly spellcheck="false"></textarea></label>
+    <button id="copy" type="button" class="button secondary">Copy merged rules</button>
+  </section>
+  <a href="./">Return to Cairn &amp; Crown</a>
+</main>
+</body>
+</html>

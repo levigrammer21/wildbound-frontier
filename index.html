@@ -3,147 +3,63 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101b19">
-  <meta name="description" content="Befriend a wild companion, fight through the frontier, and build a business with other rangers.">
-  <title>Wildbound Frontier</title>
+  <meta name="theme-color" content="#142321">
+  <meta name="description" content="A private fantasy RPG in the valley of Alderwatch.">
+  <title>Cairn &amp; Crown</title>
+  <link rel="icon" type="image/svg+xml" href="./img/cairn.svg">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./game.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="shell header-content">
-      <a class="brand" href="#frontier" data-view="frontier" aria-label="Wildbound Frontier home">
-        <span class="brand-mark" aria-hidden="true">✧</span>
-        <span>Wildbound <small>FRONTIER</small></span>
-      </a>
-      <div class="header-right">
-        <span id="ranger-balance" class="balance" hidden></span>
-        <button type="button" id="account-open" class="button quiet">Sign in</button>
-      </div>
+  <header class="mast">
+    <div class="frame mast-row">
+      <a href="#map" class="logo" aria-label="Cairn and Crown home"><img src="./img/cairn.svg" alt="" width="36" height="36"><span>CAIRN <i>&amp;</i> CROWN<small>THE ALDERWATCH VALLEY</small></span></a>
+      <div class="top-right"><span id="version"></span><button type="button" class="button secondary" id="account-open">Sign in</button></div>
     </div>
   </header>
-
-  <main class="shell" id="main">
-    <div id="app-status" class="notice" role="status" aria-live="polite" hidden></div>
-
-    <section id="view-frontier" class="view" aria-labelledby="hero-title">
-      <div class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow"><span aria-hidden="true">◆</span> The northern wilds</p>
-          <h1 id="hero-title">Wildbound<br>Frontier</h1>
-          <p>Bond with a wildborn companion. Fight beyond the gates, and build a name in the frontier towns.</p>
-          <div class="button-row">
-            <button type="button" id="first-expedition" class="button primary">Start expedition <span aria-hidden="true">↗</span></button>
-            <button type="button" class="button glass" data-view="company">Play together</button>
-          </div>
-        </div>
-        <div id="world-event" class="world-event"></div>
+  <div id="status" class="notice" role="status" aria-live="polite" hidden></div>
+  <section id="gate" class="frame" aria-label="Enter Alderwatch">
+    <div class="welcome">
+      <img src="./img/eldervale.webp" alt="" fetchpriority="high">
+      <div class="welcome-content">
+        <p class="eyebrow">A private fantasy RPG</p>
+        <h1>Cairn &amp;<br>Crown</h1>
+        <p>Follow the old roads of Alderwatch. Master your craft, earn your place in town, and see what stirs beyond the cairns.</p>
+        <button id="welcome-action" class="button primary" type="button">Enter Alderwatch</button>
+        <p id="gate-note" class="feedback" role="status"></p>
       </div>
-      <div class="dashboard">
-        <section class="panel regions" aria-labelledby="regions-heading">
-          <div class="section-head"><h2 id="regions-heading">Frontier map</h2><span id="map-counter" class="tag"></span></div>
-          <div id="region-list"></div>
-        </section>
-        <section class="panel pet-panel" aria-labelledby="featured-heading">
-          <div class="section-head"><h2 id="featured-heading">Your companion</h2><button type="button" class="text-button" data-view="menagerie">Menagerie →</button></div>
-          <div id="featured-pet"></div>
-        </section>
-      </div>
-    </section>
-
-    <section id="view-menagerie" class="view" aria-labelledby="menagerie-heading" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Ranger lodge</p><h1 id="menagerie-heading">Menagerie</h1><p>Win expeditions to discover new companions. Each has its own markings, stats, and ability.</p></div><div id="pet-counter" class="tag"></div></div>
-      <div id="creature-list" class="grid"></div>
-      <section class="panel journal">
-        <div class="section-head"><h2>Field journal</h2></div>
-        <ul id="journal-list" class="clean-list"></ul>
-      </section>
-    </section>
-
-    <section id="view-town" class="view" aria-labelledby="town-heading" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Frontier trade</p><h1 id="town-heading">Town</h1><p>Work contracts, craft gear, and buy or run a forge.</p></div></div>
-      <div id="town-content"></div>
-    </section>
-
-    <section id="view-company" class="view" aria-labelledby="company-heading" hidden>
-      <div class="page-heading"><div><p class="eyebrow">Two-ranger expedition</p><h1 id="company-heading">Company</h1><p>Take on the Rift Sentinel together or contribute to your company’s score on your own time.</p></div></div>
-      <div id="company-content"></div>
-    </section>
-    <footer>Wildbound Frontier <span>1.0.0</span></footer>
-  </main>
-
-  <nav class="tabs" aria-label="Game sections">
-    <div class="shell nav-items">
-      <button data-view="frontier" aria-current="page"><span aria-hidden="true">⌖</span> Frontier</button>
-      <button data-view="menagerie"><span aria-hidden="true">♧</span> Menagerie</button>
-      <button data-view="town"><span aria-hidden="true">◇</span> Town</button>
-      <button data-view="company"><span aria-hidden="true">✦</span> Company</button>
+    </div>
+  </section>
+  <div class="frame world-layout" id="world-layout" hidden>
+    <aside class="side" id="rail" aria-label="Character status"></aside>
+    <main id="game-content" tabindex="-1"></main>
+  </div>
+  <nav class="nav" id="nav" aria-label="Game" hidden>
+    <div class="frame nav-row">
+      <a href="#map" data-nav="map"><span aria-hidden="true">⌖</span>Map</a>
+      <a href="#skills" data-nav="skills"><span aria-hidden="true">⚒</span>Skills</a>
+      <a href="#pack" data-nav="pack"><span aria-hidden="true">◇</span>Pack</a>
+      <a href="#town" data-nav="town"><span aria-hidden="true">♜</span>Town</a>
+      <a href="#house" data-nav="house"><span aria-hidden="true">⌂</span>House</a>
     </div>
   </nav>
-
-  <dialog id="account-dialog" aria-labelledby="account-title">
-    <form id="auth-form">
-      <div class="dialog-head"><h2 id="account-title">Ranger account</h2><button type="button" class="icon-button" data-close="account-dialog" aria-label="Close">×</button></div>
-      <p>Sign in to save your ranger, trade, and open company expeditions.</p>
-      <label>Email <input name="email" type="email" autocomplete="email" required></label>
-      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-      <p id="auth-status" class="feedback" role="status" aria-live="polite"></p>
-      <div class="button-row">
-        <button type="submit" name="mode" value="login" class="button primary">Sign in</button>
-        <button type="submit" name="mode" value="create" class="button quiet">Create account</button>
-      </div>
-      <button type="button" id="password-reset" class="text-button">Send password reset email</button>
-    </form>
-    <form id="profile-form" hidden>
-      <div class="dialog-head"><h2>Choose your ranger name</h2><button type="button" class="icon-button" data-close="account-dialog" aria-label="Close">×</button></div>
-      <p>Your name appears in company expeditions.</p>
-      <label>Ranger name <input name="ranger" type="text" autocomplete="nickname" minlength="2" maxlength="24" required></label>
-      <p id="profile-status" class="feedback" role="status"></p>
-      <button type="submit" class="button primary">Enter the frontier</button>
-    </form>
-    <div id="account-panel" hidden>
-      <div class="dialog-head"><h2>Your account</h2><button type="button" class="icon-button" data-close="account-dialog" aria-label="Close">×</button></div>
-      <p id="account-email"></p>
-      <button type="button" id="logout" class="button quiet">Sign out</button>
-    </div>
+  <dialog id="modal" aria-labelledby="modal-title">
+    <div class="dialog-head"><h2 id="modal-title"></h2><button id="modal-close" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <div id="modal-body"></div>
   </dialog>
-
-  <dialog id="expedition-dialog" aria-labelledby="expedition-title">
-    <div class="dialog-head"><h2 id="expedition-title">Choose an encounter</h2><button type="button" class="icon-button" data-close="expedition-dialog" aria-label="Close">×</button></div>
-    <p id="expedition-description"></p>
-    <div id="expedition-list" class="stack"></div>
-  </dialog>
-
-  <dialog id="battle-dialog" class="battle-dialog" aria-labelledby="battle-title">
-    <div class="dialog-head"><div><p id="battle-area" class="eyebrow"></p><h2 id="battle-title"></h2></div><button type="button" class="icon-button" id="battle-exit" aria-label="Leave encounter">×</button></div>
-    <div class="battle-field" id="battle-field">
-      <div class="combatants">
-        <div class="combatant">
-          <span id="battle-pet"></span>
-          <div class="bar" aria-hidden="true"><span id="health-fill"></span></div>
-          <span id="health-text" class="meter-text"></span>
-          <div id="battle-pet-portrait" class="battle-portrait"></div>
-        </div>
-        <div class="combatant enemy">
-          <span id="foe-name"></span>
-          <div class="bar" aria-hidden="true"><span id="foe-fill"></span></div>
-          <span id="foe-health" class="meter-text"></span>
-          <div id="battle-enemy" class="battle-portrait"></div>
-        </div>
-      </div>
-      <span id="combat-effect" aria-hidden="true"></span>
+  <dialog id="battle" aria-labelledby="battle-title">
+    <div class="dialog-head">
+      <div><p class="eyebrow">Encounter</p><h2 id="battle-title"></h2></div>
+      <button id="retreat" class="button secondary" type="button">Retreat</button>
     </div>
-    <div class="battle-controls">
-      <div class="stat-line"><span id="battle-stamina">Stamina 100</span><span id="battle-tell" role="status"></span><span id="battle-clock"></span></div>
-      <div id="combat-actions" class="combat-actions">
-        <button type="button" class="button quiet" data-action="strike">Strike <small>20</small></button>
-        <button type="button" class="button quiet" data-action="heavy">Heavy <small>38</small></button>
-        <button type="button" class="button quiet" data-action="guard">Guard <small>15</small></button>
-        <button type="button" class="button quiet" data-action="dodge">Dodge <small>21</small></button>
-        <button type="button" class="button primary" data-action="pet">Companion</button>
-      </div>
-      <p id="battle-result" role="status" hidden></p>
+    <div id="battle-stage">
+      <div id="combat-bars"></div>
+      <div id="arena" aria-label="Five combat lanes"></div>
+      <p id="combat-effect" aria-live="off"></p>
     </div>
+    <div class="combat-hint" id="combat-hint" role="status"></div>
+    <div id="combat-controls"></div>
+    <div id="combat-result" hidden></div>
   </dialog>
 </body>
 </html>

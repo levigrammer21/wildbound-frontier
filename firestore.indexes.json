@@ -1,0 +1,8 @@
+{
+  "indexes": [
+    {"collectionGroup":"market","queryScope":"COLLECTION","fields":[{"fieldPath":"state","order":"ASCENDING"},{"fieldPath":"stamp","order":"DESCENDING"}]},
+    {"collectionGroup":"entries","queryScope":"COLLECTION","fields":[{"fieldPath":"state","order":"ASCENDING"},{"fieldPath":"stamp","order":"DESCENDING"}]},
+    {"collectionGroup":"pets","queryScope":"COLLECTION","fields":[{"fieldPath":"owner","order":"ASCENDING"},{"fieldPath":"state","order":"ASCENDING"}]}
+  ],
+  "fieldOverrides":[]
+}

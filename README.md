@@ -1,43 +1,76 @@
-# Wildbound Frontier
+# Cairn & Crown · 1.0.0
 
-[Play Wildbound Frontier](https://levigrammer21.github.io/wildbound-frontier/) · [GitHub repository](https://github.com/levigrammer21/wildbound-frontier)
+Cairn & Crown is a private, mobile-first fantasy RPG for one ranger or a small group. Explore Alderwatch Valley, train ten skills, earn and customize equipment, and make a living through trade, contracts, or owning a permanent establishment. All ten skills can reach level 99 and keep recording lifetime experience.
 
-Wildbound Frontier is a mobile-first creature RPG. Clear three regions, find up to 12 procedurally generated companions per ranger, and use timing, stamina, and your companion’s ability to fight. Town work accumulates while you’re away. Rangers can earn gold, claim a forge, set its fees, sell or trade gear, and buy a deed from another ranger. Company expeditions let two rangers fight in parallel or in separate sessions. Each contributes their best result to the same objective and can rally the other ranger after dealing 65 damage.
+## Start playing
 
-## Play on a phone
+1. Enter Alderwatch using the email invited by your world host. Choose **Create account** if it is your first Firebase login, or **Sign in** if you already have an email/password account in this project. For a new or previously unverified address, tap **Send verification email**, open the link in your inbox, then tap **I verified my email**.
+2. Choose a ranger name, skin, hair, and coat. Open **Town → Guild** to see the town’s first requests. You begin with basic tools, gold, supplies, a sword, and a furnishing for your house.
+3. Select **Brackenwood** on the map. Start a trail activity, visit the **Skills** screen, or choose **Fight** at an enemy. You can assign one activity at a time.
+4. In combat, basic attacks fire automatically in reach. The marked lanes show where danger will land. Reposition, guard, dodge, use your weapon’s special, and keep meals or tonics handy.
+5. Use **Pack → Companions** after discovering an egg. Inspect a hatched pet to equip it, rename it, show it off at home, trade it, or release it for Karma. An equipped companion supplies passive buffs. Pets on display are stabled.
+6. Use **Town → Market** to list or gift stackable resources, equipment, eggs, and companions. Collected assets and proceeds arrive through **Town → Mailbox**. **Town → Community** shows other rangers and links to their homes.
 
-1. Open the game and tap **Start expedition** to try solo combat. The preview saves to this browser.
-2. Tap **Sign in** to use a Firebase email/password account. Use **Create account** if you need one. Existing passwords from the same Firebase project still work. Choose a ranger display name when prompted.
-3. In **Town**, collect work and select a forge. Craft gear for 2 ore. Player-owned forges can charge a craft fee and take a fixed gold cut on gear sales. The first three pieces of gear in your bag boost your attacks.
-4. In **Company**, choose your ally tactic and open an expedition. Send the other player the invitation link or 12-character code. Once both rangers join, either can take on the encounter. Both scores remain with the invitation after you leave.
+An assigned activity can reconcile up to 12 hours at a time. Production pays only for completed actions, and it stops if materials or gold run out. Idle hunts spend your available healing supplies and retreat on defeat. If you reopen an unfinished active fight, the encounter restarts from its saved setup. To pursue a different task, collect and stop your current assignment. The help text on activities includes required levels, tools and resources.
 
-You can use keys **1–5** for combat on a keyboard. Your browser runs the encounter. Ranger accounts save the field report to Firestore and queue it locally when disconnected.
+A forge's production price is quoted when the session begins. The quoted proprietor keeps their share for that session, including when ownership later changes. An establishment that charges for crafting has a slower, free guild alternative. At a market purchase, the buyer pays the displayed price, the seller gets the balance after the posted commission, and the shop owner earns the commission. NPC trade settles once per elapsed six-hour window up to 12 windows and includes a finite budget per shop. Every ranger can fulfill one town commission per window. Contracts also boost experience in one profession while they run.
 
-## Publish or update on GitHub Pages
+## Publish from a phone
 
-1. Download and extract the ZIP using Android Files or the iPhone Files app. Keep the contents of the extracted archive at the repository root. Keep `pinefall.webp` inside `img`.
-2. Open [the repository](https://github.com/levigrammer21/wildbound-frontier) in your mobile browser. If **Add file** or **Settings** is hidden, turn on **Desktop site** in Chrome or **Request Desktop Website** in Safari.
-3. Use **Add file → Upload files** for the root files and commit to `main`. Open the repository’s `img` folder before uploading `pinefall.webp`. On a fresh repository where the folder is missing, use a file tool that uploads the extracted tree, or first create an empty `img/.gitkeep` with **Add file → Create new file** and then upload the image inside `img`. If your file picker hides empty and dot-prefixed files, create an empty file called `.nojekyll` at the repository root using **Add file → Create new file**.
-4. Open **Settings → Pages**. Under **Build and deployment**, select **Deploy from a branch**, **main**, and **/ (root)**. Tap **Save**. The Pages screen links to the site once GitHub finishes publishing.
+### 1. Upload the static site
 
-The ZIP can run as a static site with no build step. To try it from a computer before publishing, change to the extracted directory and run `python3 -m http.server 8000`. Open `http://localhost:8000`. The Firebase SDK is loaded from Google’s CDN.
+1. Extract **Cairn-and-Crown-v1.0.0.zip** in Android Files or iPhone Files. The ZIP opens to the source files directly. Use a fresh GitHub repository for Cairn & Crown so your earlier site's files stay on their own branch and path.
+2. Open your repository on GitHub. If the upload or settings controls are hidden, choose **Desktop site** in Chrome or **Request Desktop Website** in Safari.
+3. Use **Add file → Upload files**. Upload the extracted root files to the repository root, then **Commit changes** to **main**. Keep the files that came inside **img** together. If the phone picker cannot upload a folder, use **Add file → Create new file** to create **img/.gitkeep**, commit it, open that folder, then use **Add file → Upload files** for the image assets. If the picker hides **.nojekyll**, use **Add file → Create new file**, name it **.nojekyll**, put a single blank line in it, and commit it at the root.
+4. Go to the repository’s **Settings → Pages**. Select **Deploy from a branch**, branch **main**, folder **/ (root)**, and tap **Save**. The Pages screen will show the published address after the build completes. The GitHub Free workflow uses a public source repository. Access to game data is controlled by Firebase invitations.
+5. Open the site over HTTPS. You should see **Cairn & Crown** and a **v1.0.0** marker. The game runs directly from root-level files and uses the Firebase Web SDK from Google’s CDN.
 
-[GitHub Pages setup documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-site)
+[GitHub Pages publishing instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
-## Firebase settings for this repository
+### 2. Check your existing Firebase Authentication settings
 
-1. Open the [existing Everfall project](https://console.firebase.google.com/project/everfall-d0cf7/overview). The app already uses its web configuration from `config.js`. Use the project’s `(default)` Firestore database.
-2. Under **Authentication → Sign-in method**, confirm **Email/Password** is enabled. The passwordless email-link option is unnecessary.
-3. Under **Authentication → Settings → Authorized domains**, confirm `levigrammer21.github.io` appears. If deploying to another domain, add the new hostname without a path. Use desktop view on a phone if the console hides these tabs.
-4. Open **Firestore Database → Rules**. Copy the currently published rules as a backup. Open `firestore.rules` from the ZIP and copy the block from the `WILDBOUND BEGIN` comment through the `WILDBOUND END` comment. Paste it inside the existing `match /databases/{database}/documents { … }` block as a sibling of the existing `match /everfallSaves/{uid}` block. Keep the existing version line, wrapper, and Everfall match. Then tap **Publish**. This merge matters on a shared Firebase project.
-5. Open the live game, sign in, and create a ranger. From two separate accounts, craft an item, list it, buy it, then confirm the seller and forge owner receive their shares. Open a Company expedition and join from the other account. Complete a fight together, then return later with either account and confirm that the room retained its scores.
+1. Open the [Everfall project](https://console.firebase.google.com/project/everfall-d0cf7/overview) and keep the existing project. The ZIP’s **config.js** contains the supplied Firebase web-app configuration.
+2. In **Authentication → Sign-in method**, verify **Email/Password** is enabled. Turn on **Email/Password** and tap **Save** if needed.
+3. In **Authentication → Settings → Authorized domains**, check for your Pages hostname. For a typical personal site it is **YOUR-USERNAME.github.io**. Add just the hostname if absent. Pages repository paths are outside the hostname.
+4. If needed, request the desktop version of the Firebase Console on your phone to show the complete navigation.
 
-New documents live under `gameNamespaces/wildboundFrontierV1`. The existing `everfallSaves` match continues to serve legacy saves. No Firebase Storage bucket, Cloud Functions, scheduled jobs, paid services, or additional indexes are required. Firestore listeners are scoped to the active screen. Timed work settles in one transaction using Firestore server time, with a cap of 24 batches per claim.
+[Firebase password authentication](https://firebase.google.com/docs/auth/web/password-auth)
 
-[Firebase email/password documentation](https://firebase.google.com/docs/auth/web/password-auth) · [Firestore transaction rules](https://firebase.google.com/docs/firestore/security/rules-conditions#access_other_documents)
+### 3. Merge the Firestore rules
 
-## What the backend validates
+1. Open [Firestore Database](https://console.firebase.google.com/project/everfall-d0cf7/firestore), select **(default)**, and open **Rules**. Copy the entire currently published rules file and save a backup in a note.
+2. In a second tab, open **rules-setup.html** at the end of your hosted game address. Paste the current rules into **Current published rules**. Tap **Prepare merged rules** and verify that matches for your other games are present in the output.
+3. Tap **Copy merged rules**, return to the Firebase Rules editor, paste the merged rules there, and tap **Publish**. The helper runs in the page and inserts one scoped match inside the existing database match. If your custom rules use version 1 or multiple database matches, review the project rules first. The full addition is marked **CAIRN BEGIN** through **CAIRN END** in **firestore.rules** and belongs inside the active documents match. If you already added this game, use only one Cairn block.
+4. If your project has an overlapping broad allow on **gameNamespaces** or a recursive wildcard covering every path, review that wildcard before opening the private world. Firestore combines overlapping allows.
 
-Wallet changes require an atomic receipt that verifies the gold, ore, gear, deed, and listing changes together. Only email/password-authenticated rangers can access the game collections. Ranger profiles are owner-only. Wallet names and balances can be read by signed-in rangers who know the wallet ID. Company data is available to signed-in rangers with the room code. Public trades and deeds carry no account email.
+The game stores data under **gameNamespaces/cairnCrownV1**. The module is designed to be added alongside the existing Everfall and Wildbound rules.
 
-Solo combat outcomes and Company scores come from the browser. Firestore verifies which ranger may update a score, when it can be posted, and its bounds. It has no trusted combat simulator, and these results never mint shared gold. Firebase quotas and abuse controls apply to the entire existing project.
+[Firestore rule structure](https://firebase.google.com/docs/firestore/security/rules-structure)
+
+### 4. Add the Firestore indexes
+
+Go to **Firestore Database → Indexes → Composite → Add index**. Create each row if an equivalent index is missing, and wait for the status to become **Enabled**.
+
+| Collection ID | First field | Second field | Query scope |
+|---|---|---|---|
+| market | state · Ascending | stamp · Descending | Collection |
+| entries | state · Ascending | stamp · Descending | Collection |
+| pets | owner · Ascending | state · Ascending | Collection |
+
+The same definitions are included in **firestore.indexes.json**. The pets query also orders by the implicit document ID.
+
+[Firestore index management](https://firebase.google.com/docs/firestore/query-data/indexing)
+
+### 5. Give the first host access and invite the second player
+
+1. In the Firebase Console, open **Firestore Database → Data → (default)**. Open the collection **gameNamespaces**, or use **Start collection** to create it. Select **Add document** and enter **cairnCrownV1** as the document ID if this document is absent. Add a string field **label** with value **Cairn & Crown**, then save.
+2. Select the **cairnCrownV1** document and tap **Start collection**. Enter **invites** as the collection ID. Use your login email in lowercase as the document ID. Add Boolean fields **active = true** and **admin = true**, then save.
+3. Open the Pages site and sign in or create your account using that same email. Verify the email if prompted, then create your ranger.
+4. In the site header, select **Account**, type your wife’s login email, and tap **Invite to Alderwatch**. Send her the published Pages link. She can use **Create account** with that invited email, or sign in if she already has a password account in the Firebase project. Have her verify her email if prompted. The invite appears immediately after a successful account sign-in or a tap on **Check invitation**.
+5. To disable an invitation, open that lowercase email’s document in Firestore and set **active** to **false**. New and existing ranger command access follows the invitation status.
+
+## Build and verification
+
+Run **node tests.mjs** inside the extracted directory for the standalone engine tests. Serve the directory with a static HTTP server to preview the art and interface. The source includes documentation of the economy in **DESIGN.md** and the executed checks in **TESTING.md**.
+
+The world targets a private group. Real-time combat results and personal progression run on clients, while shared item reservations, shop deeds, fees, and ownership use Firestore transactions. One equipped pet has passive buffs. Companion and auction lists load in pages of 24. The current release supports individual real-time encounters, asynchronous trade and gifts, and real-time updates to shared economy views. Shared boss fights and borrowing other rangers were optional and are outside this release.
