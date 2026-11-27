@@ -1,15 +1,15 @@
-# Cairn & Crown · 1.0.1
+# Cairn & Crown · 1.1.0
 
 Cairn & Crown is a mobile-first fantasy RPG for one ranger or a small group. Explore Alderwatch Valley, train ten skills, earn and customize equipment, and make a living through trade, contracts, or owning a permanent establishment. All ten skills can reach level 99 and keep recording lifetime experience.
 
 ## Start playing
 
 1. Open Alderwatch. Choose **Create account** if it is your first Firebase login, or **Sign in** if you already have an email/password account in this project. For a new or previously unverified address, tap **Send verification email**, open the link in your inbox, then tap **I verified my email**.
-2. Choose a ranger name, skin, hair, and coat. Open **Town → Guild** to see the town’s first requests. You begin with basic tools, gold, supplies, a sword, and a furnishing for your house.
-3. Select **Brackenwood** on the map. Start a trail activity, visit the **Skills** screen, or choose **Fight** at an enemy. You can assign one activity at a time.
-4. In combat, basic attacks fire automatically in reach. The marked lanes show where danger will land. Reposition, guard, dodge, use your weapon’s special, and keep meals or tonics handy.
-5. Use **Pack → Companions** after discovering an egg. Inspect a hatched pet to equip it, rename it, show it off at home, trade it, or release it for Karma. An equipped companion supplies passive buffs. Pets on display are stabled.
-6. Use **Town → Market** to list or gift stackable resources, equipment, eggs, and companions. Collected assets and proceeds arrive through **Town → Mailbox**. **Town → Community** shows other rangers and links to their homes.
+2. Create your ranger and step into Alderwatch. On a phone, tap the ground or use the arrow pad to walk. On a keyboard, use WASD or the arrow keys and press **E** near a landmark to interact. The **Atlas** can guide you to landmarks and trail exits.
+3. Walk into the **Rangers’ Guild** for your first quests. Follow the north road to **Brackenwood**. Approach a resource to start work or approach a monster to challenge it or assign an idle hunt. You can assign one activity at a time.
+4. Fight on the same map. Your ranger attacks automatically within the equipped weapon’s reach. Move out of highlighted tiles or use **Guard**, **Dodge**, your weapon’s special, and consumables. The **1–4** keys use guard, dodge, special, and the first available healing food.
+5. Bring eggs to **Moonnest Aviary** or the **Rangers’ Guild**. Open **Pack → Companions** to inspect, equip, or manage companions. Your equipped companion follows you and provides passive buffs. To display a companion, enter your house and use the decorating station.
+6. Walk to the **Market stall** to sell items or send gifts. Parcels and proceeds arrive at the **Postbox**. The **Neighbourhood board** is where you can inspect other rangers and visit their houses. Walk to the **Town bank** to move equipment and supplies into storage.
 
 An assigned activity can reconcile up to 12 hours at a time. Production pays only for completed actions, and it stops if materials or gold run out. Idle hunts spend your available healing supplies and retreat on defeat. If you reopen an unfinished active fight, the encounter restarts from its saved setup. To pursue a different task, collect and stop your current assignment. The help text on activities includes required levels, tools and resources.
 
@@ -19,11 +19,11 @@ A forge's production price is quoted when the session begins. The quoted proprie
 
 ### 1. Upload the static site
 
-1. Extract the complete game archive in Android Files or iPhone Files for a fresh install. If your game is already live, extract the 1.0.1 update ZIP and upload its files to your existing repository.
+1. Extract the complete game archive in Android Files or iPhone Files for a fresh install. If your game is already live, use the same repository and upload the updated game files.
 2. Open your repository on GitHub. If the upload or settings controls are hidden, choose **Desktop site** in Chrome or **Request Desktop Website** in Safari.
 3. Use **Add file → Upload files**. Upload the extracted root files to the repository root, then **Commit changes** to **main**. Keep the files that came inside **img** together. If the phone picker cannot upload a folder, use **Add file → Create new file** to create **img/.gitkeep**, commit it, open that folder, then use **Add file → Upload files** for the image assets. If the picker hides **.nojekyll**, use **Add file → Create new file**, name it **.nojekyll**, put a single blank line in it, and commit it at the root.
 4. Go to the repository’s **Settings → Pages**. Select **Deploy from a branch**, branch **main**, folder **/ (root)**, and tap **Save**. The Pages screen will show the published address after the build completes. The GitHub Free workflow uses a public source repository. Verified email/password accounts can enter the shared world.
-5. Open the site over HTTPS. You should see **Cairn & Crown** and a **v1.0.1** marker. The game runs directly from root-level files and uses the Firebase Web SDK from Google’s CDN.
+5. Open the site over HTTPS. You should see **Cairn & Crown** and a **v1.1.0** marker. The game runs directly from root-level files and uses the Firebase Web SDK from Google’s CDN.
 
 [GitHub Pages publishing instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
@@ -65,10 +65,10 @@ The same definitions are included in **firestore.indexes.json**. The pets query 
 
 On the Pages site, sign in with your email and password. Verify your email if prompted, then create your ranger or continue your existing save. Share the game link with anyone you want to play with. Each player signs in with their own account.
 
-For an existing site, upload the updated files and publish the revised Cairn rules before signing in to version 1.0.1.
+An existing 1.0.1 deployment can publish these files over the current build. Version 1.1.0 uses the same Firebase configuration, rules, indexes, and save format.
 
 ## Build and verification
 
 Run **node tests.mjs** inside the extracted directory for the standalone engine tests. Serve the directory with a static HTTP server to preview the art and interface. The source includes documentation of the economy in **DESIGN.md** and the executed checks in **TESTING.md**.
 
-The world is designed for a small group. Real-time combat results and personal progression run on clients, while shared item reservations, shop deeds, fees, and ownership use Firestore transactions. One equipped pet has passive buffs. Companion and auction lists load in pages of 24. The current release supports individual real-time encounters, asynchronous trade and gifts, and real-time updates to shared economy views. Shared boss fights and borrowing other rangers were optional and are outside this release.
+The world is designed for a small group. Real-time combat results and personal progression run on clients, while shared item reservations, shop deeds, fees, and ownership use Firestore transactions. One equipped pet has passive buffs. Companion and auction lists load in pages of 24. The current release supports individual real-time encounters, asynchronous trade and gifts, and real-time updates to shared economy views. Player movement and encounters are local. The economy, gifts, profiles, house visits, and progression are shared through Firebase.

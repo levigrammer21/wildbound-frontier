@@ -44,17 +44,10 @@ small{font-size:.78rem}
 .welcome-content{padding:40px 7%;max-width:680px}
 .welcome h1{font-size:clamp(4rem,12vw,8rem);line-height:.86;margin-bottom:18px;color:#fff0ce}
 .welcome p:not(.eyebrow){max-width:390px;color:#dfeadd;margin-bottom:18px}
-.world-layout{display:grid;grid-template-columns:238px minmax(0,1fr);gap:19px;padding:20px 0 82px;align-items:start}
-.side{display:grid;gap:12px;position:sticky;top:14px}
-.side .avatar-top{display:grid;grid-template-columns:68px 1fr;align-items:center;gap:8px}
 .avatar-top .pixel{width:100%;min-width:0}
-.side h2{font-size:1.31rem;overflow-wrap:anywhere}
-.side .button{width:100%;margin-top:8px}
 .panel,.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;min-width:0}
 .card{background:linear-gradient(145deg,#23362f,#192a27)}
 .panel + .panel{margin-top:12px}
-.side .panel + .panel{margin-top:0}
-.side .note{font-size:.77rem}
 .row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .stack{display:grid;gap:8px;min-width:0}
 .stack-lg{display:grid;gap:13px;min-width:0}
@@ -65,16 +58,6 @@ small{font-size:.78rem}
 .subnav .button[aria-pressed=true]{border-color:#cda86e;background:#54452d;color:#ffe4ac}
 .section-head{margin-bottom:12px}
 .section-head h1{margin-bottom:4px}
-.map{position:relative;aspect-ratio:1.72;background:#26382c url('./img/eldervale.webp') center/cover;border:1px solid #5b6e5a;border-radius:12px;isolation:isolate;overflow:hidden}
-.map::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(150deg,#101e1a22,#12201d15 45%,#111d1b98)}
-.map-label{position:absolute;left:12px;top:12px;padding:7px 11px;background:#152821ec;border:1px solid #678064;border-radius:5px}
-.waypoint{position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;min-height:40px;white-space:nowrap;padding:4px 8px;border-radius:7px;background:#132623e6;border:1px solid #7b9380;color:#edeee1;font-size:.79rem;font-weight:700;box-shadow:0 4px 9px #101c20a8}
-.waypoint span{padding:0 3px;color:var(--spot);font-size:1.15rem}
-.waypoint.selected{border-color:var(--gold);color:#ffe5af;background:#3e3627;box-shadow:0 0 14px #f4c17773}
-.waypoint.locked{border-style:dashed;color:#c0c7bc}
-.region{position:relative;background:linear-gradient(90deg,#1b302bf1,#1a2e2bac 60%,#16262479),var(--scene) center 53%/cover,#21372f}
-.region .eyebrow{margin-bottom:4px}
-.region .note{max-width:550px;color:#e0ede2}
 .progress{height:8px;border-radius:5px;background:#0c1918;overflow:hidden;border:1px solid #3b584a}
 .progress span{display:block;height:100%;background:linear-gradient(90deg,#6f9273,#c0d091);width:0;transition:width .15s}
 .list{margin:0;padding:0;list-style:none}
@@ -118,47 +101,20 @@ dialog{padding:16px;color:var(--ink);max-height:calc(100dvh - 25px);width:min(54
 dialog::backdrop{background:#091715d9}
 .dialog-head{padding-bottom:9px;border-bottom:1px solid #4a6555;margin-bottom:11px}
 .icon-btn{font-size:23px;border:1px solid #567365;color:var(--ink);width:40px;height:40px;flex:none;background:#2c443a;border-radius:7px}
-#battle{width:min(760px,calc(100% - 16px))}
-#battle-stage{min-height:220px;position:relative;isolation:isolate;border:1px solid #617561;border-radius:8px;overflow:hidden;background:linear-gradient(#10201f47,#1123237a),var(--arena) center/cover}
-#combat-bars{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:11px}
-#combat-bars .note{color:#f7f4d9;text-shadow:0 1px 4px #0a1414;font-weight:650}
-#combat-bars .progress:last-child span{background:linear-gradient(90deg,#ac6d56,#e8b268)}
-#arena{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:absolute;bottom:7px;width:100%;height:57%;padding:0 7px}
-.lane{display:flex;align-items:end;justify-content:center;gap:0;background:#0f201cac;border:1px solid #76937a4d;color:#d0dbc4;border-radius:4px;position:relative;min-width:0;padding:0}
-.lane.warn{background:#96291d91;border-color:#ffb594;animation:pulse .45s infinite alternate}
-.lane .pixel{width:100%;position:absolute;bottom:4px;pointer-events:none}
-.lane .ally-sprite{width:60%;left:-5%;bottom:1px}
-.lane .enemy-sprite{transform:scaleX(-1);z-index:1}
-.lane .player-sprite{z-index:2}
-.lane .in-lane{bottom:15px;transform:translateX(-9%)}
-.lane-number{position:absolute;bottom:0;left:3px;color:#faf1df;background:#172622bf;padding:1px 3px;font-size:.69rem}
-#combat-effect{position:absolute;z-index:2;top:46%;width:100%;pointer-events:none;text-align:center;color:#ffe6ac;font-weight:800;text-shadow:0 2px 5px #13201c}
-#arena.hit .enemy-sprite,#arena.hurt .player-sprite{animation:recoil .28s ease-out}
-@keyframes recoil{35%{translate:7px 0;filter:brightness(1.8)}}
-@keyframes pulse{to{background:#db5937b0}}
-.combat-hint{min-height:26px;padding:5px 0;color:#f6d59a;font-size:.8rem}
-#combat-controls{display:grid;gap:7px}
-#combat-result{padding-top:10px}
 .flash{animation:reveal .58s ease-out}
 @keyframes reveal{from{opacity:0;scale:.88} to{opacity:1;scale:1}}
-@media(max-width:900px){.world-layout{grid-template-columns:180px minmax(0,1fr);gap:10px}.frame{width:calc(100% - 30px)}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.frame{width:calc(100% - 30px)}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:670px){
  .frame{width:calc(100% - 20px)}.mast,.mast-row{min-height:60px}.logo{gap:7px;font-size:.98rem}.logo img{width:32px;height:32px}.logo small{font-size:.48rem}
  .top-right{gap:5px}#version{font-size:.63rem}.top-right .button{padding-inline:8px;font-size:.79rem;max-width:113px;overflow:hidden}
- .world-layout{display:flex;flex-direction:column;gap:10px;padding-top:10px}.side,main{width:100%;min-width:0}.side{position:static;gap:6px}.side .panel{padding:7px 9px}
- .side .avatar-top{grid-template-columns:40px 1fr}.side .avatar-top .pixel{height:38px}.side .avatar-top h2{margin-bottom:3px;font-size:1.15rem}
- .side .profile-rail{display:grid;grid-template-columns:1fr auto;align-items:center;gap:7px}.side .button{margin-top:0}.side .event-rail{display:none}
- .map{aspect-ratio:1.33}.map-label{left:6px;top:6px;padding:4px 6px}.waypoint{min-height:37px;font-size:.66rem;padding-inline:4px;gap:1px}
  .panel,.card{padding:10px}.nav-row{width:100%}.nav a{flex-direction:column;gap:0;font-size:.69rem;padding:3px 0;min-height:49px}
  .inventory{grid-template-columns:repeat(3,minmax(0,1fr))}.card .button{min-height:41px}
  .grid{gap:7px}.welcome-content{padding:25px}.welcome{min-height:610px}.welcome h1{font-size:clamp(3.5rem,19vw,6.5rem)}
  .welcome::after{background:linear-gradient(90deg,#142622e9,#172b25b0 67%,#14262375)}
- .notice{top:67px}#battle-stage{min-height:186px}.section-head .note{font-size:.81rem}
+ .notice{top:67px}.section-head .note{font-size:.81rem}
 }
-@media(max-width:360px){.grid.two{grid-template-columns:1fr}.waypoint{font-size:.58rem}.logo small{letter-spacing:.11em}}
+@media(max-width:360px){.grid.two{grid-template-columns:1fr}.logo small{letter-spacing:.11em}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .enemy-thumb{height:86px}.enemy-thumb .pixel{height:80px;width:96px}
 textarea{font:14px/1.4 ui-monospace,monospace;width:100%;padding:8px;color:var(--ink);background:#132522;border:1px solid #536b5b;border-radius:6px}
-.town-scene{padding:24px 20px;min-height:181px;display:grid;align-content:end;border:1px solid #64735a;border-radius:10px;background:linear-gradient(90deg,#132821ec,#152821a8 53%,#1f2d2638),url('./img/alderwatch.webp') center 53%/cover;color:#fff1d3}
-.town-scene .note{color:#dce5d3;margin-top:6px}
 hr{border:0;border-top:1px solid #405749;margin:12px 0}

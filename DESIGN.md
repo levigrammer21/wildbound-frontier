@@ -1,6 +1,6 @@
 # Cairn & Crown implementation design
 
-A multiplayer fantasy RPG set around the town of Alderwatch. The illustrated map connects Brackenwood, Frostvein, Mirefen, and the Ashen March. Amber light, deep green and slate, and pixel characters tie the town, wilderness, combat, pets, and houses together.
+A multiplayer fantasy RPG set around the town of Alderwatch. A walkable Alderwatch connects Brackenwood, Frostvein, Mirefen, and the Ashen March. Each region has its own collision map, paths, sprites, resource sites, and encounters. The illustrated atlas helps players find their way. Amber light, deep green and slate, and pixel characters tie the town, wilderness, combat, pets, and houses together.
 
 ## Release scope
 
@@ -25,7 +25,7 @@ Timed activities have a skill unlock, equipment where applicable, repeatable XP,
 
 ## Engines and economy
 
-- The simulator snapshots relevant equipment, active pet buffs, and the production quote. It settles at a Firestore timestamp, bounds catch-up to 12 hours, validates each action, and rolls deterministically from the activity cursor. Offline combat tracks health and food. Active combat uses the same stats with movement, reach, telegraphs, guards, dodges, and specials.
+- The simulator snapshots relevant equipment, active pet buffs, and the production quote. It settles at a Firestore timestamp, bounds catch-up to 12 hours, validates each action, and rolls deterministically from the activity cursor. Offline combat tracks health and food. Active combat uses the same stats on the exploration map. Enemies pursue in four directions and telegraph ground shapes. Weapon reach, cooldowns, guards, dodges, and consumables determine how players respond. Movement stays local and only the encounter ticket and result go to Firestore.
 - Eggs are weighted by source. Hatching rolls compatible silhouettes, palettes, patterns, eyes, tails, and accessories. A Firestore transaction permanently reserves the canonical visual signature. Passive buffs roll independently and one pet may be active. Global records retain ownership, original hatch date, egg source, and provenance after transfers and release.
 - Eight permanent businesses begin under NPC ownership. Idle sessions lock the displayed fee and beneficiary. Production spends gold and inputs per action. Marketplace purchases divide existing gold between seller and establishment. Shop NPC credits draw from fixed budgets per six-hour window. Prices, fees, and upgrade costs are displayed before commitment.
 - The dedicated cairnCrownV1 namespace is a sibling of existing game data. Firebase Authentication uses email and password with verified email ownership. Verified email/password accounts can join directly. Player saves are private. Community profiles and houses serve visits. Listings and gifts use escrow. Seller and proprietor payments go to addressed parcels, which avoids cross-account writes to personal saves.

@@ -39,7 +39,7 @@ function inspect(c,asset,bank=false){
     }));
   }
   if(!bank&&!equipped)controls.push(button('Trade in town',()=>{
-    c.closeModal();c.state.townTab='market';c.state.tradePick=asset.kind+'|'+asset.id;c.navigate('town');
+    c.closeModal();c.state.tradePick=asset.kind+'|'+asset.id;c.goTo('market');
   },{style:'ghost'}));
   c.display(assetName(asset),stack(detailAsset(asset),common?note(common.text):gearDetails(item),
     row(controls.filter(x=>x.tagName!=='FORM')),controls.filter(x=>x.tagName==='FORM'),
@@ -73,10 +73,10 @@ function petDetails(c,pet){
       if(await c.run('petEquip',{id:worn?null:pet.id},{success:worn?'Companion stabled.':'Companion equipped.'}))c.closeModal();
     },{style:'primary',disabled:placed||busy}),
     button('Trade in town',()=>{
-      c.closeModal();c.state.townTab='market';c.state.tradePick='pet|'+pet.id;c.navigate('town');
+      c.closeModal();c.state.tradePick='pet|'+pet.id;c.goTo('market');
     },{disabled:worn||placed}),
     button('Display at home',()=>{
-      c.state.visited=null;c.state.houseSelection={kind:'pet',id:pet.id};c.closeModal();c.navigate('house');
+      c.state.houseSelection={kind:'pet',id:pet.id};c.closeModal();c.goTo('home');
     },{disabled:worn||placed}),
     button('Release',()=>{
       const gain=1+pet.buffs.length+(pet.traits.accessory>=5?2:0);
@@ -100,6 +100,7 @@ function companions(c){
   const {p,shops,pets,user,activePet}=c.state;
   const aviary=shops.hatchery;
   const fee=aviary?.owner&&aviary.owner!==user.uid?aviary.fee:0;
+  const atAviary=c.atSite('hatchery'), atGuild=c.atSite('guild');
   const ownedEggs=Object.entries(p.eggs).filter(([,n])=>n>0);
   async function hatch(id,fallback=false){
     const result=await c.run('hatch',{id,fee:fallback?0:fee,fallback});
@@ -108,12 +109,14 @@ function companions(c){
       button('Inspect companion',()=>petDetails(c,result),{style:'primary'})));
   }
   const eggs=ownedEggs.map(([id,qty])=>card(h('div',{class:'icon-pair'},itemArt('egg',itemName(id),EGGS[id].color),h('h3',{},itemName(id)+' ×'+qty)),
-    note(EGGS[id].hint),row(button('Hatch '+EGGS[id].name,()=>hatch(id),
-      {small:true,style:'primary',disabled:p.gold<fee}),
-      fee?button('Hatch at guild',()=>hatch(id,true),{small:true}):null)));
+    note(EGGS[id].hint),atAviary?button('Hatch '+EGGS[id].name,()=>hatch(id),
+      {small:true,style:'primary',disabled:p.gold<fee}):
+      atGuild?button('Hatch '+EGGS[id].name,()=>hatch(id,true),{small:true,style:'primary'}):null));
   return stack(
-    panel(h('div',{class:'line'},title('Eggs'),pill(fee?fee+' g aviary fee':'Free hatching')),
-      ownedEggs.length?h('div',{class:'grid two'},eggs):note('Eggs turn up while gathering, making goods, fighting, and completing guild quests.')),
+    panel(h('div',{class:'line'},title('Eggs'),atAviary||atGuild?pill(atAviary&&fee?fee+' g aviary fee':'Free hatching'):null),
+      ownedEggs.length?h('div',{class:'grid two'},eggs):note('Eggs turn up while gathering, making goods, fighting, and completing guild quests.'),
+      ownedEggs.length&&!atAviary&&!atGuild?note('Bring eggs to Moonnest Aviary or the Rangers’ Guild to hatch them.'):null,
+      ownedEggs.length&&!atAviary&&!atGuild&&c.state.region==='town'?button('Walk to Moonnest Aviary',()=>c.goTo('shop','hatchery'),{small:true}):null),
     panel(h('div',{class:'line'},title('Companion stable'),pill(p.karma+' Karma')),
       activePet?note('Active buff: '+activePet.buffs.map(buffText).join(' · ')):note('Equip one companion to receive its passive bonuses.'),
       pets.length?h('div',{class:'grid',style:'margin-top:8px'},pets.map(pet=>card(
@@ -147,7 +150,8 @@ function character(c){
 }
 export function packView(c){
   const tab=c.state.packTab;
-  const choices=[['items','Pack'],['bank','Bank'],['pets','Companions'],['character','Character']];
+  const choices=[['items','Pack'],['pets','Companions'],['character','Character']];
+  if(c.atSite('bank'))choices.splice(1,0,['bank','Bank']);
   return h('div',{},heading('The lodge','Manage equipment, supplies, and the companions you’ve found.'),
     subnav(tab,choices,id=>{c.state.packTab=id;c.refreshPane();c.render();}),
     tab==='pets'?companions(c):tab==='character'?character(c):inventory(c,tab==='bank'));
@@ -189,12 +193,12 @@ export function houseView(c){
     c.state.houseMove=null;c.state.houseSelection={kind:item.kind,id:item.id};c.render();
   },{small:true,style:'ghost',pressed:select?.id===item.id}));
   return h('div',{},heading(own?'Your house':target.name+'’s house',own?'Place furnishings and show off mementos and companions.':'You’re visiting a neighbour in Alderwatch.'),
-    panel(h('div',{class:'line'},title('The hearth'),!own?button('Return home',()=>{c.state.visited=null;c.render();},{small:true}):null),
+    panel(h('div',{class:'line'},title('The hearth'),!own?button('Return home',()=>c.visit({id:user.uid}),{small:true}):null),
       h('div',{class:'house-grid','aria-label':'House floor plan'},tiles),
       own?note(move!==null?'Choose an empty tile to move this display.':select?'Choose an empty tile to place your selection.':'Select a display to place, or tap an occupied tile to move or remove it.'):null),
     own?panel(title('Available displays'),pick.length?row(pick):note('Craft furnishings at Hearthwood, win boss trophies, or hatch a companion.'),
       pages(c,'pets',pets)):null,
     panel(title('Neighbours'),listing(party.filter(x=>x.id!==user.uid),other=>[h('strong',{},other.name),button('Visit '+other.name,async()=>{
-      if(await c.run('visit',{uid:other.id})){c.state.visited=other;c.state.houseMove=null;c.render();}
-    },{small:true})],'Invited players appear after creating a ranger.')));
+      await c.visit(other);
+    },{small:true})],'Other rangers appear after creating a character.')));
 }

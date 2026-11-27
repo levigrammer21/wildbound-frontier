@@ -1,14 +1,15 @@
-import {ACTIVITIES,EVENT_SECONDS,LOCATIONS,VERSION,eventAt} from './content.js?v=1.0.1';
-import {clone,level} from './engine.js';
-import {COAT,HAIR,SKIN,petArt,rangerArt} from './art.js';
-import {el,h,button,bar,field,form,gold,note,panel,pill,row,stack,summary,timeText,title} from './ui.js';
-import {worldView,skillsView} from './views-world.js';
-import {houseView,packView} from './views-player.js';
-import {townView} from './views-town.js';
-import {launchBattle} from './battle-ui.js';
+import {ACTIVITIES,ENEMIES,LOCATIONS,SHOPS,VERSION,eventAt} from './content.js?v=1.1.0';
+import {clone,regionUnlocked} from './engine.js';
+import {COAT,HAIR,SKIN,rangerArt} from './art.js';
+import {el,h,button,field,form,note,row,stack,summary,timeText} from './ui.js';
+import {atlasView,encounterView,skillsView} from './views-world.js?v=1.1.0';
+import {houseView,packView} from './views-player.js?v=1.1.0';
+import {townView} from './views-town.js?v=1.1.0';
+import {Field} from './field.js?v=1.1.0';
+import {distance} from './field-data.js';
 
-const tabs={map:worldView,skills:skillsView,pack:packView,town:townView,house:houseView};
-const state={view:'map',region:'town',skill:'woodcutting',packTab:'items',townTab:'guild',shop:'forge',
+const tabs={atlas:atlasView,skills:skillsView,pack:packView,town:townView,house:houseView,encounter:encounterView};
+const state={view:'field',region:'town',skill:'woodcutting',packTab:'items',townTab:'guild',shop:'forge',
   user:null,p:null,profileSeen:false,profileError:null,shops:{},party:[],pets:[],market:[],mail:[],
   activePet:null,activePetId:null,event:eventAt(Date.now()),online:navigator.onLine,busy:false,
   houseSelection:null,houseMove:null,visited:null,page:{},cursor:{},pages:{},drawn:false};
@@ -22,11 +23,19 @@ let toastTimer;
 let joinSerial=0;
 let worldSlot=-1;
 let autoAt=0;
-let lastShownPlayer='';
 let npcWindow=-1;
 let npcBusy=false;
-const ctx={state,render,display,closeModal,notice,run,navigate,refreshPane,pageTo,showReport,customize,account,launchFight};
+const ctx={state,render,display,closeModal,notice,run,navigate,refreshPane,pageTo,showReport,customize,account,
+  launchFight,returnToField,goTo,visit,atSite};
+const world=new Field(el('field-mount'),{
+  state,notice,paused:()=>state.view!=='field'||el('modal').open||!state.p,
+  area:region=>{state.region=region;reconcileNpcOrders();},
+  interact,job:showJob,report:showReport,updated:render,
+  finish:(ticket,outcome)=>run('finishFight',{id:ticket.id,outcome})
+});
+let returnSpot=null;
 export function display(label,contents){
+  world.pauseInput();
   el('modal-title').textContent=label;
   el('modal-body').replaceChildren(...(Array.isArray(contents)?contents:[contents]));
   if(!el('modal-feedback'))el('modal-body').append(h('p',{id:'modal-feedback',class:'feedback',role:'status'}));
@@ -65,7 +74,7 @@ function syncAccount(user){
   const session=++joinSerial;
   clean(baseSubs);clean(paneSubs);petSub?.();petSub=null;
   firstReport=false;worldSlot=-1;autoAt=0;npcWindow=-1;
-  Object.assign(state,{user,p:null,profileSeen:false,profileError:null,shops:{},party:[],pets:[],market:[],mail:[],
+  Object.assign(state,{user,p:null,view:'field',profileSeen:false,profileError:null,shops:{},party:[],pets:[],market:[],mail:[],
     activePet:null,activePetId:null,visited:null,page:{},cursor:{},pages:{},drawn:false});
   render();
   if(el('modal').open)account();
@@ -76,21 +85,19 @@ function syncAccount(user){
     const initial=!state.profileSeen;
     const firstSave=p&&!state.p;
     state.profileSeen=true;state.profileError=null;state.p=p||null;
-    if(p&&lastShownPlayer!==user.uid){
-      lastShownPlayer=user.uid;
-      state.region=p.region;
-    }
     syncPet(p?.pet??null);
     if(initial&&el('modal').open){
       if(p)closeModal();
       else customize(false);
     }
     if(firstSave){
+      render();
+      world.setOwner(user.uid,p.region);
+      world.resume();
       refreshPane();
       reconcileWorld();
       maybeCollect(true);
-    }
-    updateRender();
+    }else updateRender();
   },err=>{
     if(session!==joinSerial)return;
     if(state.p){showError(err);return;}
@@ -100,8 +107,12 @@ function syncAccount(user){
   }));
   baseSubs.push(api.watch('world','calendar',world=>{
     if(world)worldSlot=world.slot;
-    renderRail();
   },showError));
+  baseSubs.push(api.list('shops',items=>{
+    state.shops=Object.fromEntries(items.map(item=>[item.id,item]));
+    updateRender();
+    reconcileNpcOrders();
+  },showError,8));
 }
 function syncPet(id){
   if(state.activePetId===id)return;
@@ -111,7 +122,7 @@ function syncPet(id){
 function updateRender(){
   const active=document.activeElement;
   if(active?.matches('input,select')&&active.closest('#game-content')){
-    renderRail();
+    world.updatePlayer();
     return;
   }
   render();
@@ -122,12 +133,6 @@ export function refreshPane(){
   const err=error=>notice(explanation(error),true);
   const set=(key,values,cursor)=>{state[key]=values;state.cursor[key]=cursor;updateRender();};
   const tab=state.view==='town'?state.townTab:state.packTab;
-  if(['town','skills'].includes(state.view)||state.view==='pack'&&tab==='pets')
-    paneSubs.push(api.list('shops',items=>{
-      state.shops=Object.fromEntries(items.map(item=>[item.id,item]));
-      updateRender();
-      reconcileNpcOrders();
-    },err,8));
   if(state.view==='house'||state.view==='town'&&['market','community','mail'].includes(tab))
     paneSubs.push(api.list('profiles',items=>{
       state.party=items;
@@ -152,7 +157,7 @@ function pageTo(which,direction){
   refreshPane();render();
 }
 async function reconcileNpcOrders(){
-  if(state.view!=='town'||!state.p||!state.online||npcBusy||npcWindow===state.event.slot)return;
+  if(state.region!=='town'||!state.p||!state.online||npcBusy||npcWindow===state.event.slot)return;
   const stale=Object.values(state.shops).filter(shop=>shop.owner&&shop.npcSlot<state.event.slot);
   if(!stale.length)return;
   const owner=state.user.uid;
@@ -194,75 +199,139 @@ async function maybeCollect(first=false){
   const elapsed=Date.now()-task.cursor;
   if(elapsed<task.seconds*1000||!first&&elapsed<100000)return;
   const result=await run('collect');
-  if(result&&first&&elapsed>80000&&!el('modal').open&&!el('battle').open&&!firstReport){
+  if(result&&first&&elapsed>80000&&!el('modal').open&&!world.activeBattle&&!firstReport){
     firstReport=true;showReport(result);
   }
 }
-function renderRail(){
-  if(!state.p)return;
+function showJob(){
   const p=state.p;
-  const gear=p.gear[p.equipped.weapon];
-  const pet=state.activePet;
-  const profile=h('div',{class:'panel profile-rail'},
-    h('div',{class:'avatar-top'},rangerArt(p.appearance,gear?.base,p.name),
-      h('div',{},title(p.name),row(gold(p.gold),pill('Combat '+level(p.xp.combat))))),
-    button('Character',()=>{state.packTab='character';navigate('pack');},{small:true,style:'ghost'}));
-  const side=[profile];
   if(p.activity){
-    const a=ACTIVITIES[p.activity.kind][p.activity.key];
-    side.push(panel(h('p',{class:'eyebrow'},'Active contract'),
-      h('strong',{},a.name),bar(0,'work-fill'),h('p',{id:'work-time',class:'note'}),
-      row(button('Collect',async()=>{
-        const result=await run('collect');
-        if(result)showReport(result);else if(state.p?.activity)notice('The next action is still underway.');
-      },{small:true}),button('Stop',async()=>{const out=await run('stop');if(out&&out!==true)showReport(out);},{small:true,style:'ghost'}))));
+    const task=p.activity, activity=ACTIVITIES[task.kind][task.key];
+    display(activity.name,stack(note('This activity keeps running while the game is closed.'),
+      note('Each action takes '+timeText(task.seconds)+(task.quote.fee?' and costs '+task.quote.fee+' gold.':'.')),
+      row(button('Collect rewards',async()=>{
+        const report=await run('collect');
+        if(report)showReport(report);
+        else if(state.p?.activity)notice('The next action is still underway.');
+      },{style:'primary'}),button('Stop activity',async()=>{
+        const report=await run('stop');
+        if(report&&report!==true)showReport(report);
+        else if(report)closeModal();
+      }))));
   }else if(p.ticket){
-    side.push(panel(h('strong',{},'Encounter in progress'),button('Resume encounter',()=>launchFight(p.ticket.enemy,p.ticket),{small:true}),button('Abandon',()=>run('abandon',{}, {success:'Encounter abandoned.'}),{small:true,style:'ghost'})));
-  }else if(p.report){
-    side.push(panel(button('Last activity report',()=>showReport(p.report),{small:true,style:'ghost'})));
-  }
-  if(p.discovery)side.push(panel(h('strong',{},'A trail discovery awaits'),button('Investigate',()=>navigate('map'),{small:true,style:'primary'})));
-  if(pet)side.push(h('section',{class:'panel event-rail'},h('div',{class:'avatar-top'},petArt(pet.traits,pet.name),
-    h('div',{},h('strong',{},pet.name),note('Equipped companion')))));
-  side.push(h('section',{class:'panel event-rail'},h('p',{class:'eyebrow'},'Town commission'),h('strong',{},state.event.name),
-    note(state.event.detail),button('Guild board',()=>{state.townTab='guild';navigate('town');},{small:true,style:'ghost'})));
-  el('rail').replaceChildren(...side);
-  progressClock();
-}
-function progressClock(){
-  const task=state.p?.activity;
-  const fill=el('work-fill');
-  const time=el('work-time');
-  if(!task||!fill||!time)return;
-  const elapsed=Math.max(0,(Date.now()-task.cursor)/1000);
-  const next=task.seconds-elapsed%task.seconds;
-  fill.style.width=(100-next/task.seconds*100)+'%';
-  const message=Math.floor(elapsed/task.seconds)+' ready · '+timeText(next)+' to next';
-  if(time.textContent!==message)time.textContent=message;
+    display('Encounter in progress',row(button('Resume encounter',()=>{
+      closeModal();launchFight(p.ticket.enemy,p.ticket);
+    },{style:'primary'}),button('Abandon',async()=>{
+      if(await run('abandon',{}, {success:'Encounter abandoned.'}))closeModal();
+    })));
+  }else if(p.report)showReport(p.report);
 }
 function render(){
+  const ready=!!state.p;
+  document.body.classList.toggle('in-field',ready);
   el('version').textContent='v'+VERSION;
-  el('gate').hidden=!!state.p;el('world-layout').hidden=!state.p;el('nav').hidden=!state.p;
+  el('gate').hidden=ready;el('world-layout').hidden=!ready;el('nav').hidden=!ready;
   el('account-open').textContent=state.user?'Account':'Sign in';
   el('gate-note').textContent=state.profileError?explanation(state.profileError):
     state.user&&!state.user.emailVerified?'Verify your email to enter Alderwatch.':
     state.user&&!state.profileSeen?'Loading your saved ranger…':'';
-  if(!state.p)return;
-  renderRail();
+  if(!ready)return;
+  world.updatePlayer();
+  const view=state.view;
+  const navView=['atlas','skills','pack'].includes(view)?view:'field';
   document.querySelectorAll('[data-nav]').forEach(link=>{
-    if(link.dataset.nav===state.view)link.setAttribute('aria-current','page');
+    if(link.dataset.nav===navView)link.setAttribute('aria-current','page');
     else link.removeAttribute('aria-current');
+    link.setAttribute('aria-disabled',String(!!world.activeBattle&&link.dataset.nav!=='field'));
   });
-  const body=tabs[state.view]?.(ctx)||worldView(ctx);
-  el('game-content').replaceChildren(body);
+  el('field-overlay').hidden=view==='field';
+  el('field-overlay').dataset.view=view;
+  el('field-mount').inert=view!=='field';
+  if(view==='field'){world.resume();return;}
+  const titles={atlas:'Atlas',skills:'Skills',pack:'Travelling pack',house:'The hearth',encounter:state.spot?.name,town:state.stationName};
+  el('panel-title').textContent=titles[view]||'Alderwatch';
+  el('game-content').replaceChildren(tabs[view](ctx));
 }
 function navigate(view){
-  if(!tabs[view])return;
-  if(state.view!==view)window.scrollTo({top:0});
-  state.view=view;history.replaceState(null,'','#'+view);
+  if(view!=='field'&&!tabs[view])return;
+  if(world.activeBattle&&view!=='field')return;
+  world.pauseInput();
+  const resetScroll=state.view!==view;
+  if(view==='pack'&&state.packTab==='bank'&&!atSite('bank'))state.packTab='items';
+  state.view=view;
+  const navView=['atlas','skills','pack'].includes(view)?view:'field';
+  history.replaceState(null,'','#'+navView);
   refreshPane();render();
+  if(resetScroll)el('game-content').scrollTop=0;
 }
-function modeFromHash(){const view=location.hash.slice(1);if(tabs[view]){state.view=view;refreshPane();render();}}
+function returnToField(){if(state.view!=='field')navigate('field');}
+function atSite(id){
+  return world.region==='town'&&world.spots().some(s=>s.id===id&&distance(s,world.position)<=1);
+}
+function goTo(kind,id){
+  if(world.activeBattle)return;
+  returnToField();
+  if(kind==='home'&&world.region==='home'){
+    if(state.visited)enterHouse(null);
+    world.toSpot(world.spots().find(s=>s.kind==='decorate'));
+    return;
+  }
+  const spot=world.spots().find(s=>s.kind===kind&&(!id||s.id===id));
+  if(!spot){
+    notice(world.region==='home'?'Step outside to continue.':'Follow the road back to Alderwatch first.');
+    return;
+  }
+  world.toSpot(spot);
+}
+function station(tab,name){
+  state.townTab=tab;state.stationName=name;navigate('town');
+}
+function enterHouse(visited){
+  if(world.region!=='home')returnSpot={...world.position};
+  state.visited=visited;state.houseMove=null;
+  returnToField();world.enter('home');
+}
+async function visit(other){
+  if(other.id===state.user.uid){enterHouse(null);return;}
+  if(await run('visit',{uid:other.id}))enterHouse(other);
+}
+async function interact(spot){
+  if(state.busy||!state.p||world.activeBattle)return;
+  if(spot.kind==='gate'){
+    if(!regionUnlocked(state.p,spot.id)){
+      notice('Reach level '+LOCATIONS[spot.id].unlock+' in any skill to take this road.');return;
+    }
+    if(await run('travel',{id:spot.id}))world.travel(spot.id);
+    return;
+  }
+  if(spot.kind==='home'){
+    enterHouse(null);
+    if(state.houseSelection)navigate('house');
+    return;
+  }
+  if(spot.kind==='leave'){
+    state.visited=null;state.houseSelection=null;world.enter('town',returnSpot);return;
+  }
+  if(spot.kind==='shop'){
+    state.shop=spot.id;station('business',SHOPS[spot.id].name);return;
+  }
+  if(spot.kind==='bank'){state.packTab='bank';navigate('pack');return;}
+  if(spot.kind==='neighbors'){navigate('house');return;}
+  if(spot.kind==='decorate'){
+    if(!state.visited)navigate('house');
+    else notice('Your neighbour’s furnishings are on display.');
+    return;
+  }
+  if(['guild','market','mail','community'].includes(spot.kind)){
+    station(spot.kind,spot.name);return;
+  }
+  state.spot=spot;navigate('encounter');
+}
+function modeFromHash(){
+  if(!state.p)return;
+  const target=location.hash.slice(1);
+  navigate(['atlas','pack','skills'].includes(target)?target:'field');
+}
 function account(){
   if(!state.user){
     const feedback=h('p',{id:'modal-feedback',class:'feedback',role:'status'});
@@ -339,14 +408,20 @@ function customize(existing){
   }));
 }
 async function launchFight(id,resume=null){
-  if(el('battle').open)return;
+  if(world.activeBattle)return;
   const ticket=resume||await run('startFight',{id});
-  if(ticket)launchBattle(ctx,id,ticket);
+  if(ticket&&state.p){
+    returnToField();world.battle(ENEMIES[id],ticket);render();
+  }
 }
 
 el('welcome-action').addEventListener('click',account);
 el('account-open').addEventListener('click',account);
 el('modal-close').addEventListener('click',closeModal);
+el('panel-close').addEventListener('click',returnToField);
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!el('modal').open&&state.view!=='field')returnToField();
+});
 for(const link of document.querySelectorAll('[data-nav]'))link.addEventListener('click',event=>{event.preventDefault();navigate(link.dataset.nav);});
 window.addEventListener('hashchange',modeFromHash);
 window.addEventListener('online',()=>{state.online=true;notice('Back online.');reconcileWorld();reconcileNpcOrders();maybeCollect(true);});
@@ -357,12 +432,11 @@ setInterval(()=>{
   const now=Date.now();
   const event=eventAt(now);
   if(state.event.slot!==event.slot){state.event=event;reconcileWorld();reconcileNpcOrders();render();}
-  progressClock();
+  world.updateJob();
   if(now-autoAt>30000){
     autoAt=now;
     maybeCollect();
   }
 },1000);
-modeFromHash();
 render();
 cloud().catch(error=>{el('gate-note').textContent=explanation(error);});

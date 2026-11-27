@@ -5,6 +5,7 @@ import {
   reconcile,requirement,starter,stash,thresholds
 } from './engine.js';
 import {Battle} from './combat.js';
+import {SCENES,distance,interactionCells,route,walkable} from './field-data.js';
 import {generatePet,signature} from './pets.js';
 
 const test=(name,fn)=>{fn(); console.log('PASS '+name);};
@@ -87,38 +88,61 @@ test('Idle combat uses food and stops after defeat',()=>{
   assert.match(report.stop,/Retreated/);
   assert.equal(p.stats.kills,report.actions);
 });
-test('Real-time movement, telegraphs, guard, cooldowns, healing, loot, and defeat',()=>{
+test('Walkable town services, wilderness activities, exits and boss arenas',()=>{
+  for(const scene of Object.values(SCENES)){
+    for(const place of scene.spots){
+      const steps=route(scene,scene.spawn,interactionCells(place));
+      assert.ok(steps,scene.id+' / '+place.id+' must be reachable');
+      let previous=scene.spawn;
+      for(const step of steps){
+        assert.equal(distance(previous,step),1);
+        assert.ok(walkable(scene,step.x,step.y));
+        previous=step;
+      }
+      assert.ok(distance(previous,place)<=1);
+    }
+  }
+  assert.equal(walkable(SCENES.town,5,4),false);
+  assert.equal(walkable(SCENES.town,33,12),false);
+  assert.equal(walkable(SCENES.town,33,9),true);
+});
+test('Top-down combat range, area telegraphs, repositioning, guard, healing, loot and defeat',()=>{
   const p=starter('Tester');
   const stats=combatStats(p,{buffs:[{kind:'damage',skill:'combat',value:10}]});
   assert.ok(stats.attack>combatStats(p,null).attack);
   const enemy=ENEMIES.boar;
-  const b=new Battle(enemy,stats,{trailmeal:2},9);
+  const b=new Battle(enemy,stats,{trailmeal:2},9,SCENES.wood,{x:8,y:11},{x:8,y:10});
   const tick=n=>{for(let i=0;i<n;i++)b.step(.05);};
-  b.move(1);tick(26);
-  assert.equal(b.position,2);
+  assert.equal(b.move(0,-1),false,'The player cannot occupy the enemy tile');
+  tick(33);
   assert.ok(b.foe<enemy.hp);
-  tick(6);
-  assert.ok(b.telegraph?.lanes.includes(2));
-  b.move(-1);tick(24);
+  assert.equal(b.telegraph?.name,'Charge');
+  assert.ok(b.telegraph.cells.some(cell=>cell.x===8&&cell.y===11));
+  assert.ok(b.move(1,0));
+  assert.equal(b.inRange,false);
+  tick(26);
   assert.equal(b.hp,stats.max);
-  b.move(1);tick(7);
+  assert.ok(b.events.some(e=>e.text==='Evaded'));
+  if(!b.inRange){
+    const [next]=route(SCENES.wood,b.position,interactionCells(b.enemyPos).slice(1),b.bounds);
+    assert.ok(b.move(next.x-b.position.x,next.y-b.position.y));
+  }
   assert.ok(b.act('special'));
   assert.ok(!b.act('special'));
-  b.hp=6;
-  assert.ok(b.act('consume','trailmeal')||b.finished);
-  assert.ok(!b.act('consume','trailmeal'));
-  assert.ok(b.hp>6||b.finished);
+  if(!b.finished){
+    b.hp=6;
+    assert.ok(b.act('consume','trailmeal'));assert.ok(!b.act('consume','trailmeal'));assert.ok(b.hp>6);
+  }
   while(!b.finished)b.step(.05);
   assert.ok(b.win);
-  const result=activeRewards(p,enemy,{id:'test-battle',seed:8,stats},b.outcome(),start);
-  assert.equal(result.actions,1);
+  const report=activeRewards(p,enemy,{id:'test-battle',seed:8,stats},b.outcome(),start);
+  assert.equal(report.actions,1);
   assert.equal(p.stats.kills,1);
   assert.equal(p.gold,90);
-  const defend=new Battle(ENEMIES.crown,stats,{},8);
-  defend.step(1.5);assert.equal(!!defend.telegraph,true);
-  defend.position=defend.enemyPos;
+  const defend=new Battle(ENEMIES.crown,stats,{},8,SCENES.march,{x:30,y:23},{x:30,y:22});
+  defend.step(1.65);assert.ok(defend.telegraph);
   assert.ok(defend.act('guard'));assert.ok(!defend.act('guard'));
-  defend.step(1.2);assert.ok(defend.hp>0);
+  defend.step(1.28);assert.ok(defend.hp>0);
   while(!defend.finished)defend.step(.08);
   assert.equal(defend.win,false);
 });

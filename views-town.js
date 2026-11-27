@@ -1,17 +1,28 @@
 import {EGGS,GEAR,ITEMS,MAX_COMMISSION,MAX_FEE,QUESTS,RECIPES,SHOPS,SKILLS,VENDOR,tradeShop} from './content.js';
 import {count,has,questReady} from './engine.js';
 import {petArt,rangerArt} from './art.js';
-import {pages} from './views-player.js';
+import {pages} from './views-player.js?v=1.1.0';
+import {activityCard} from './views-world.js?v=1.1.0';
 import {assetName,button,card,detailAsset,form,gold,h,heading,itemName,itemText,listing,note,number,
-  panel,pill,row,select,stack,subnav,timeText,title,words} from './ui.js';
+  panel,pill,row,select,stack,timeText,title,words} from './ui.js';
 
+function guildWorkshop(c){
+  const stations=Object.entries(SHOPS).filter(([id])=>Object.values(RECIPES).some(a=>a.shop===id));
+  const active=c.state.guildShop||stations[0][0];
+  return stack(button('Back to quests',()=>{c.state.townTab='guild';c.render();},{small:true}),
+    note('The guild provides free work benches. Each action takes 80% longer.'),
+    row(stations.map(([id,shop])=>button(shop.name,()=>{c.state.guildShop=id;c.render();},{small:true,pressed:id===active}))),
+    h('div',{class:'field-recipe-list'},Object.values(RECIPES).filter(a=>a.shop===active).map(a=>activityCard(c,a,true))));
+}
 function guild(c){
   const {event,p}=c.state;
   const completed=p.eventDone>=event.slot;
   const ready=has(p,event.items);
   const shop=c.state.shops[event.shop];
   const cut=shop?.owner&&shop.owner!==c.state.user.uid?Math.floor(event.gold*shop.commission/100):0;
-  return stack(panel(h('p',{class:'eyebrow'},'Current commission'),title(event.name),note(event.detail),note(itemText(event.items)),
+  return stack(row(button('Use free guild work benches',()=>{c.state.townTab='guildWorkshop';c.render();},{small:true}),
+    Object.keys(p.eggs).length?button('Hatch eggs',()=>{c.state.packTab='pets';c.navigate('pack');},{small:true}):null),
+    panel(h('p',{class:'eyebrow'},'Current commission'),title(event.name),note(event.detail),note(itemText(event.items)),
     row(gold(event.gold-cut),pill('+12% '+SKILLS[event.bonus][0]+' XP while event runs'),
       button(completed?'Commission filled':'Fulfill order',()=>c.run('contract',{}, {success:result=>'Town delivery paid '+result+' gold.'}),
         {small:true,style:'primary',disabled:completed||!ready})),
@@ -31,17 +42,14 @@ function business(c){
   const shop=shops[id];
   const owner=shop?.owner===user.uid;
   const fee=shop?.fee??def.fee, commission=shop?.commission??def.commission;
-  const picks=Object.entries(SHOPS).map(([id,def])=>button(def.glyph+' '+def.name,()=>{
-    c.state.shop=id;c.render();
-  },{small:true,style:'ghost',pressed:id===c.state.shop}));
-  const links=[...new Set(Object.values(RECIPES).filter(r=>r.shop===id).map(r=>r.skill))];
   const actions=[];
   if(!shop)actions.push(button('Buy establishment · '+def.cost+' g',()=>c.run('claimShop',{id},{success:'You now own '+def.name+'.'}),
     {style:'primary',disabled:p.gold<def.cost}));
   if(shop?.price&&!owner)actions.push(button('Buy deed · '+shop.price+' g',()=>c.run('buyShop',{id,price:shop.price,seller:shop.owner},{success:'The deed has transferred.'}),
     {style:'primary',disabled:p.gold<shop.price}));
   if(shop&&event.slot>shop.npcSlot)actions.push(button('Reconcile NPC trade',()=>c.run('npc',{id},{success:'NPC orders settled for this establishment.'})));
-  for(const skill of links)actions.push(button(SKILLS[skill][0]+' recipes',()=>{c.state.skill=skill;c.navigate('skills');},{style:'ghost'}));
+  const recipes=Object.values(RECIPES).filter(r=>r.shop===id);
+  if(id==='hatchery')actions.push(button('Open your companions',()=>{c.state.packTab='pets';c.navigate('pack');},{style:'primary'}));
   const budget=shop?(shop.level-1)*2+def.budget:def.budget;
   let control;
   if(owner){
@@ -72,14 +80,15 @@ function business(c){
         if(await c.run('vendor',{id,qty:+data.get('qty')},{success:'Supplies delivered to your pack.'}))c.closeModal();
       }));
     },{small:true})],'')):null;
-  return stack(h('div',{class:'subnav'},picks),h('section',{class:'panel shop-detail stack'},
+  return stack(h('section',{class:'panel shop-detail stack'},
     h('div',{class:'line'},h('div',{},h('p',{class:'eyebrow'},'Alderwatch establishments'),title(def.name)),
       pill(shop?'Level '+shop.level:'NPC owned')),note(def.description),
     note('Proprietor: '+(shop?.ownerName||def.keeper)),
     row(pill(shop?(owner?'Your own use is free':fee+' g per action'):'Guild rate · free'),pill(shop?commission+'% sale cut':'Standard NPC terms'),pill(budget+' g NPC gross budget per window')),
     note('NPC trade settles in six-hour windows. Production rates are locked for each session.'),
     note('The guild facility offers the same recipes at a slower rate for free.'),row(actions)),
-    control,history,vendor);
+    recipes.length?panel(title('Production'),h('div',{class:'field-recipe-list'},recipes.map(a=>activityCard(c,a)))):null,
+    vendor,control,history);
 }
 function market(c){
   const {p,party,pets,user,market}=c.state;
@@ -148,10 +157,7 @@ function mailbox(c){
 }
 function community(c){
   const party=[...c.state.party].sort((a,b)=>b.xp-a.xp);
-  const visit=async other=>{
-    if(other.id===c.state.user.uid){c.state.visited=null;c.navigate('house');return;}
-    if(await c.run('visit',{uid:other.id})){c.state.visited=other;c.navigate('house');}
-  };
+  const visit=other=>c.visit(other);
   function profile(other){
     c.display(other.name,stack(h('div',{class:'pet-frame'},rangerArt(other.appearance,other.weapon,other.name)),
       row(pill('Combat '+other.rank),pill(words(other.xp)+' total XP'),pill(other.karma+' Karma')),
@@ -163,14 +169,9 @@ function community(c){
   return panel(title('Alderwatch records'),listing(party,(member)=>[
     stack(h('strong',{},member.name),note(words(member.xp)+' XP · '+member.kills+' victories')),
     button('Inspect '+member.name,()=>profile(member),{small:true})
-  ],'Invited players appear after creating a ranger.'));
+  ],'Other rangers appear after creating a character.'));
 }
 export function townView(c){
   const tab=c.state.townTab;
-  const panels={guild,business,market,mail:mailbox,community};
-  return h('div',{},h('header',{class:'town-scene'},h('p',{class:'eyebrow'},'The Lantern Town'),
-    h('h1',{},'Alderwatch'),note('Visit the guild, the workshops, or the player market.')),
-    subnav(tab,[['guild','Guild'],['business','Businesses'],['market','Market'],['mail','Mailbox'],['community','Community']],id=>{
-      c.state.townTab=id;c.refreshPane();c.render();
-    }),panels[tab](c));
+  return {guild,guildWorkshop,business,market,mail:mailbox,community}[tab](c);
 }
