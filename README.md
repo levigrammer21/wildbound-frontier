@@ -2,6 +2,8 @@
 
 Cairn & Crown is a mobile-first fantasy RPG for one ranger or a small group. Explore Alderwatch Valley, train ten skills, earn and customize equipment, and make a living through trade, contracts, or owning a permanent establishment. All ten skills can reach level 99 and keep recording lifetime experience.
 
+[Play Cairn & Crown](https://levigrammer21.github.io/cairn-and-crown/)
+
 ## Start playing
 
 1. Open Alderwatch. Choose **Create account** if it is your first Firebase login, or **Sign in** if you already have an email/password account in this project. For a new or previously unverified address, tap **Send verification email**, open the link in your inbox, then tap **I verified my email**.
@@ -29,7 +31,7 @@ A forge's production price is quoted when the session begins. The quoted proprie
 
 ### 2. Check your existing Firebase Authentication settings
 
-1. Open the [Everfall project](https://console.firebase.google.com/project/everfall-d0cf7/overview) and keep the existing project. The ZIP’s **config.js** contains the supplied Firebase web-app configuration.
+1. Open the [Cairn and Crown Firebase project](https://console.firebase.google.com/project/everfall-d0cf7/overview) and keep the existing project. The ZIP’s **config.js** contains the supplied Firebase web-app configuration.
 2. In **Authentication → Sign-in method**, verify **Email/Password** is enabled. Turn on **Email/Password** and tap **Save** if needed.
 3. In **Authentication → Settings → Authorized domains**, check for your Pages hostname. For a typical personal site it is **YOUR-USERNAME.github.io**. Add just the hostname if absent. Pages repository paths are outside the hostname.
 4. If needed, request the desktop version of the Firebase Console on your phone to show the complete navigation.
@@ -43,13 +45,13 @@ A forge's production price is quoted when the session begins. The quoted proprie
 3. Tap **Copy merged rules**, return to the Firebase Rules editor, paste the merged rules there, and tap **Publish**. The helper runs in the page and adds or updates the marked Cairn match inside the existing database match. If your custom rules use version 1 or multiple database matches, review the project rules first. The full addition is marked **CAIRN BEGIN** through **CAIRN END** in **firestore.rules** and belongs inside the active documents match. For an existing unmarked Cairn match, replace just that match and keep the surrounding rules.
 4. If your project has an overlapping broad allow on **gameNamespaces** or a recursive wildcard covering every path, review that wildcard before opening the shared world. Firestore combines overlapping allows.
 
-The game stores data under **gameNamespaces/cairnCrownV1**. The module is designed to be added alongside the existing Everfall and Wildbound rules.
+The game stores data under **gameNamespaces/cairnCrownV1**. The module is designed to be added alongside rules for other games in the project.
 
 [Firestore rule structure](https://firebase.google.com/docs/firestore/security/rules-structure)
 
 ### 4. Add the Firestore indexes
 
-Go to **Firestore Database → Indexes → Composite → Add index**. Create each row if an equivalent index is missing, and wait for the status to become **Enabled**.
+Go to **Firestore Database → Indexes → Manual → Add index**. Create each row if an equivalent index is missing, and wait for the status to become **Enabled**.
 
 | Collection ID | First field | Second field | Query scope |
 |---|---|---|---|
